@@ -11,13 +11,13 @@ pivot_calc <- function(data, y, y0, y00, x = NULL,
   value <- enquo(value)
 
   tidy <- data %>%
-    group_by(!!y00, !!y0, !!y, !!x) %>%
-    summarize(value = fun(!!value)) %>%
-    ungroup()
+    dplyr::group_by(!!y00, !!y0, !!y, !!x) %>%
+    dplyr::summarize(value = fun(!!value)) %>%
+    dplyr::ungroup()
 
   if(pivot){#or x is null
     tidy %>%
-      pivot_wider(names_from = !!x)
+      tidyr::pivot_wider(names_from = !!x)
   }else{
     tidy
   }

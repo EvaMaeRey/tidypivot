@@ -9,16 +9,16 @@ pivot_count <- function(data, y, y0, y00, x = NULL,
   y <- enquo(y)
   x <- enquo(x)
 
-  data <- data %>% mutate(count = 1)
+  data <- data %>% dplyr::mutate(count = 1)
 
   tidy <- data %>%
-    group_by(!!y00, !!y0, !!y, !!x) %>%
-    summarize(value = fun(count)) %>%
-    ungroup()
+    dplyr::group_by(!!y00, !!y0, !!y, !!x) %>%
+    dplyr::summarize(value = fun(.data$count)) %>%
+    dplyr::ungroup()
 
   if(pivot){#or x is null
     tidy %>%
-      pivot_wider(names_from = !!x)
+      tidyr::pivot_wider(names_from = !!x)
   }else{
     tidy
   }
