@@ -77,63 +77,21 @@ tidy_titanic %>%
 
 ## x argument is horizontal elements (columns) and y is vertical elements (rows)
 
-
-```{r count}
-pivot_count <- function(data, y, y0, y00, x = NULL, 
-                          value = NULL, 
-                          fun = sum, 
-                          pivot = T #ifelse(is.null(x),F,T)
-                          ){
-  
-  y00 <- enquo(y00)
-  y0 <- enquo(y0)
-  y <- enquo(y)
-  x <- enquo(x)
-
-    data <- data %>% mutate(count = 1)
-  
-tidy <- data %>% 
-  group_by(!!y00, !!y0, !!y, !!x) %>% 
-  summarize(value = fun(count)) %>% 
-  ungroup()
-  
-  if(pivot){#or x is null
-  tidy %>% 
-    pivot_wider(names_from = !!x)
-  }else{
-  tidy
-  }
-
-}
+```{r}
+pivot_count_script <- readLines("./R/pivot_count.R")
 ```
 
 
-```{r calc}
-pivot_calc <- function(data, y, y0, y00, x = NULL, 
-                          value, 
-                          fun = sum, 
-                          pivot = T #ifelse(is.null(x),F,T)
-                          ){
-  
-  y00 <- enquo(y00)
-  y0 <- enquo(y0)
-  y <- enquo(y)
-  x <- enquo(x)
-  value <- enquo(value)
-  
-tidy <- data %>% 
-  group_by(!!y00, !!y0, !!y, !!x) %>% 
-  summarize(value = fun(!!value)) %>% 
-  ungroup()
-  
-  if(pivot){#or x is null
-  tidy %>% 
-    pivot_wider(names_from = !!x)
-  }else{
-  tidy
-  }
+```{r count, code = pivot_count_script}
 
-}
+```
+
+```{r}
+pivot_calc_script <- readLines("./R/pivot_calc.R")
+```
+
+```{r calc, code = pivot_calc_script}
+
 ```
 
 
@@ -209,59 +167,31 @@ tidy_titanic %>%
 
 # Step 2a. build a function where visual arrangement leads.
 
-```{r propfunction}
-two_way_prop <- function(data, y, y0, y00, x = NULL, value = NULL, fun = sum, within, within2,  pivot = !is.null(x), percent = T, round = F){
-  
-  y00 <- enquo(y00)
-  y0 <- enquo(y0)
-  x <- enquo(x)
-  y <- enquo(y)
-  within <- enquo(within)
-  within2 <- enquo(within2)
 
-  
-  if(is.null(value)){
-    data <- data %>% mutate(value = 1)
-  }else{
-    value <- enquo(value)
-  }
-  
-  data %>% 
-  group_by(!!y00, !!y0, !!y, !!x) %>% 
-  summarize(value = fun(value)) %>% 
-  group_by(!!within, !!within2) %>% 
-  mutate(prop = (value/sum(value)*ifelse(percent, 100, 1)) %>% round(1)) %>% 
-  select(-value) %>%
-  ungroup() ->
-tidy
-  
-  if(pivot){
-    
-    tidy %>% 
-      pivot_wider(values_from = prop, names_from = !!x) 
-    
-  }else{
-    
-    tidy
-  }
-  
-}
+```{r}
+pivot_prop_script <- readLines("./R/pivot_prop.R")
+```
+
+
+
+```{r propfunction, code = pivot_prop_script}
+
 ```
 
 # Step 2b. using the pivot_prop
 
 ```{r propusage}
 tidy_titanic %>% 
-  two_way_prop(y = Survived, x = Class, within = Class)
+  pivot_prop(y = Survived, x = Class, within = Class)
 
 tidy_titanic %>% 
-  two_way_prop(y0 = Survived, 
+  pivot_prop(y0 = Survived, 
                y = Sex, 
                x = Class, 
                within = Survived)
 
 tidy_titanic %>% 
-  two_way_prop(y0 = Survived, 
+  pivot_prop(y0 = Survived, 
                y = Sex, 
                x = Class, 
                within = Survived,
@@ -270,7 +200,7 @@ tidy_titanic %>%
 
 ```{r propgraph}
 tidy_titanic %>% 
-  two_way_prop(y0 = Survived, 
+  pivot_prop(y0 = Survived, 
                y = Sex, 
                x = Class, 
                within = Survived, pivot = F) %>% 
@@ -284,7 +214,7 @@ tidy_titanic %>%
 
 ```{r propgraph2}
 tidy_titanic %>% 
-  two_way_prop(y0 = Survived, 
+  pivot_prop(y0 = Survived, 
                y = Sex, 
                x = Class, 
                within = Survived, 

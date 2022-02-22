@@ -88,57 +88,65 @@ tidy_titanic %>%
 ## x argument is horizontal elements (columns) and y is vertical elements (rows)
 
 ``` r
-pivot_count <- function(data, y, y0, y00, x = NULL, 
-                          value = NULL, 
-                          fun = sum, 
-                          pivot = T #ifelse(is.null(x),F,T)
-                          ){
-  
+pivot_count_script <- readLines("./R/pivot_count.R")
+```
+
+``` r
+pivot_count <- function(data, y, y0, y00, x = NULL,
+                        value = NULL,
+                        fun = sum,
+                        pivot = T #ifelse(is.null(x),F,T)
+){
+
   y00 <- enquo(y00)
   y0 <- enquo(y0)
   y <- enquo(y)
   x <- enquo(x)
 
-    data <- data %>% mutate(count = 1)
-  
-tidy <- data %>% 
-  group_by(!!y00, !!y0, !!y, !!x) %>% 
-  summarize(value = fun(count)) %>% 
-  ungroup()
-  
+  data <- data %>% mutate(count = 1)
+
+  tidy <- data %>%
+    group_by(!!y00, !!y0, !!y, !!x) %>%
+    summarize(value = fun(count)) %>%
+    ungroup()
+
   if(pivot){#or x is null
-  tidy %>% 
-    pivot_wider(names_from = !!x)
+    tidy %>%
+      pivot_wider(names_from = !!x)
   }else{
-  tidy
+    tidy
   }
 
 }
 ```
 
 ``` r
-pivot_calc <- function(data, y, y0, y00, x = NULL, 
-                          value, 
-                          fun = sum, 
-                          pivot = T #ifelse(is.null(x),F,T)
-                          ){
-  
+pivot_calc_script <- readLines("./R/pivot_calc.R")
+```
+
+``` r
+pivot_calc <- function(data, y, y0, y00, x = NULL,
+                       value,
+                       fun = sum,
+                       pivot = T #ifelse(is.null(x),F,T)
+){
+
   y00 <- enquo(y00)
   y0 <- enquo(y0)
   y <- enquo(y)
   x <- enquo(x)
   value <- enquo(value)
-  
-tidy <- data %>% 
-  group_by(!!y00, !!y0, !!y, !!x) %>% 
-  summarize(value = fun(!!value)) %>% 
-  ungroup()
-  
+
+  tidy <- data %>%
+    group_by(!!y00, !!y0, !!y, !!x) %>%
+    summarize(value = fun(!!value)) %>%
+    ungroup()
+
   if(pivot){#or x is null
-  tidy %>% 
-    pivot_wider(names_from = !!x)
+    tidy %>%
+      pivot_wider(names_from = !!x)
   }else{
-  tidy
+    tidy
   }
 
 }
@@ -233,12 +241,12 @@ tidy_titanic %>%
   gt::gt()
 ```
 
-<div id="epqlcixhbi" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="twssmkrxne" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#epqlcixhbi .gt_table {
+#twssmkrxne .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -263,7 +271,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#epqlcixhbi .gt_heading {
+#twssmkrxne .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -275,7 +283,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#epqlcixhbi .gt_title {
+#twssmkrxne .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -287,7 +295,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#epqlcixhbi .gt_subtitle {
+#twssmkrxne .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -299,13 +307,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#epqlcixhbi .gt_bottom_border {
+#twssmkrxne .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#epqlcixhbi .gt_col_headings {
+#twssmkrxne .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -320,7 +328,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#epqlcixhbi .gt_col_heading {
+#twssmkrxne .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -340,7 +348,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#epqlcixhbi .gt_column_spanner_outer {
+#twssmkrxne .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -352,15 +360,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#epqlcixhbi .gt_column_spanner_outer:first-child {
+#twssmkrxne .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#epqlcixhbi .gt_column_spanner_outer:last-child {
+#twssmkrxne .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#epqlcixhbi .gt_column_spanner {
+#twssmkrxne .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -372,7 +380,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#epqlcixhbi .gt_group_heading {
+#twssmkrxne .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -397,7 +405,7 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#epqlcixhbi .gt_empty_group_heading {
+#twssmkrxne .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -412,15 +420,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#epqlcixhbi .gt_from_md > :first-child {
+#twssmkrxne .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#epqlcixhbi .gt_from_md > :last-child {
+#twssmkrxne .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#epqlcixhbi .gt_row {
+#twssmkrxne .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -439,7 +447,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#epqlcixhbi .gt_stub {
+#twssmkrxne .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -452,7 +460,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#epqlcixhbi .gt_stub_row_group {
+#twssmkrxne .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -466,11 +474,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#epqlcixhbi .gt_row_group_first td {
+#twssmkrxne .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#epqlcixhbi .gt_summary_row {
+#twssmkrxne .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -480,16 +488,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#epqlcixhbi .gt_first_summary_row {
+#twssmkrxne .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#epqlcixhbi .gt_first_summary_row.thick {
+#twssmkrxne .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#epqlcixhbi .gt_last_summary_row {
+#twssmkrxne .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -499,7 +507,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#epqlcixhbi .gt_grand_summary_row {
+#twssmkrxne .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -509,7 +517,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#epqlcixhbi .gt_first_grand_summary_row {
+#twssmkrxne .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -519,11 +527,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#epqlcixhbi .gt_striped {
+#twssmkrxne .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#epqlcixhbi .gt_table_body {
+#twssmkrxne .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -532,7 +540,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#epqlcixhbi .gt_footnotes {
+#twssmkrxne .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -546,7 +554,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#epqlcixhbi .gt_footnote {
+#twssmkrxne .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -555,7 +563,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#epqlcixhbi .gt_sourcenotes {
+#twssmkrxne .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -569,7 +577,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#epqlcixhbi .gt_sourcenote {
+#twssmkrxne .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -577,60 +585,60 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#epqlcixhbi .gt_left {
+#twssmkrxne .gt_left {
   text-align: left;
 }
 
-#epqlcixhbi .gt_center {
+#twssmkrxne .gt_center {
   text-align: center;
 }
 
-#epqlcixhbi .gt_right {
+#twssmkrxne .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#epqlcixhbi .gt_font_normal {
+#twssmkrxne .gt_font_normal {
   font-weight: normal;
 }
 
-#epqlcixhbi .gt_font_bold {
+#twssmkrxne .gt_font_bold {
   font-weight: bold;
 }
 
-#epqlcixhbi .gt_font_italic {
+#twssmkrxne .gt_font_italic {
   font-style: italic;
 }
 
-#epqlcixhbi .gt_super {
+#twssmkrxne .gt_super {
   font-size: 65%;
 }
 
-#epqlcixhbi .gt_footnote_marks {
+#twssmkrxne .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#epqlcixhbi .gt_asterisk {
+#twssmkrxne .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#epqlcixhbi .gt_slash_mark {
+#twssmkrxne .gt_slash_mark {
   font-size: 0.7em;
   line-height: 0.7em;
   vertical-align: 0.15em;
 }
 
-#epqlcixhbi .gt_fraction_numerator {
+#twssmkrxne .gt_fraction_numerator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: 0.45em;
 }
 
-#epqlcixhbi .gt_fraction_denominator {
+#twssmkrxne .gt_fraction_denominator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: -0.05em;
@@ -697,12 +705,12 @@ tidy_titanic %>%
   gt::gt()
 ```
 
-<div id="cekssclpht" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="ohcjrsetqu" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#cekssclpht .gt_table {
+#ohcjrsetqu .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -727,7 +735,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#cekssclpht .gt_heading {
+#ohcjrsetqu .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -739,7 +747,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#cekssclpht .gt_title {
+#ohcjrsetqu .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -751,7 +759,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#cekssclpht .gt_subtitle {
+#ohcjrsetqu .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -763,13 +771,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#cekssclpht .gt_bottom_border {
+#ohcjrsetqu .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#cekssclpht .gt_col_headings {
+#ohcjrsetqu .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -784,7 +792,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#cekssclpht .gt_col_heading {
+#ohcjrsetqu .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -804,7 +812,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#cekssclpht .gt_column_spanner_outer {
+#ohcjrsetqu .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -816,15 +824,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#cekssclpht .gt_column_spanner_outer:first-child {
+#ohcjrsetqu .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#cekssclpht .gt_column_spanner_outer:last-child {
+#ohcjrsetqu .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#cekssclpht .gt_column_spanner {
+#ohcjrsetqu .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -836,7 +844,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#cekssclpht .gt_group_heading {
+#ohcjrsetqu .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -861,7 +869,7 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#cekssclpht .gt_empty_group_heading {
+#ohcjrsetqu .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -876,15 +884,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#cekssclpht .gt_from_md > :first-child {
+#ohcjrsetqu .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#cekssclpht .gt_from_md > :last-child {
+#ohcjrsetqu .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#cekssclpht .gt_row {
+#ohcjrsetqu .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -903,7 +911,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#cekssclpht .gt_stub {
+#ohcjrsetqu .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -916,7 +924,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#cekssclpht .gt_stub_row_group {
+#ohcjrsetqu .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -930,11 +938,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#cekssclpht .gt_row_group_first td {
+#ohcjrsetqu .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#cekssclpht .gt_summary_row {
+#ohcjrsetqu .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -944,16 +952,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#cekssclpht .gt_first_summary_row {
+#ohcjrsetqu .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#cekssclpht .gt_first_summary_row.thick {
+#ohcjrsetqu .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#cekssclpht .gt_last_summary_row {
+#ohcjrsetqu .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -963,7 +971,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#cekssclpht .gt_grand_summary_row {
+#ohcjrsetqu .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -973,7 +981,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#cekssclpht .gt_first_grand_summary_row {
+#ohcjrsetqu .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -983,11 +991,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#cekssclpht .gt_striped {
+#ohcjrsetqu .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#cekssclpht .gt_table_body {
+#ohcjrsetqu .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -996,7 +1004,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#cekssclpht .gt_footnotes {
+#ohcjrsetqu .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1010,7 +1018,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#cekssclpht .gt_footnote {
+#ohcjrsetqu .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -1019,7 +1027,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#cekssclpht .gt_sourcenotes {
+#ohcjrsetqu .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1033,7 +1041,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#cekssclpht .gt_sourcenote {
+#ohcjrsetqu .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -1041,60 +1049,60 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#cekssclpht .gt_left {
+#ohcjrsetqu .gt_left {
   text-align: left;
 }
 
-#cekssclpht .gt_center {
+#ohcjrsetqu .gt_center {
   text-align: center;
 }
 
-#cekssclpht .gt_right {
+#ohcjrsetqu .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#cekssclpht .gt_font_normal {
+#ohcjrsetqu .gt_font_normal {
   font-weight: normal;
 }
 
-#cekssclpht .gt_font_bold {
+#ohcjrsetqu .gt_font_bold {
   font-weight: bold;
 }
 
-#cekssclpht .gt_font_italic {
+#ohcjrsetqu .gt_font_italic {
   font-style: italic;
 }
 
-#cekssclpht .gt_super {
+#ohcjrsetqu .gt_super {
   font-size: 65%;
 }
 
-#cekssclpht .gt_footnote_marks {
+#ohcjrsetqu .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#cekssclpht .gt_asterisk {
+#ohcjrsetqu .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#cekssclpht .gt_slash_mark {
+#ohcjrsetqu .gt_slash_mark {
   font-size: 0.7em;
   line-height: 0.7em;
   vertical-align: 0.15em;
 }
 
-#cekssclpht .gt_fraction_numerator {
+#ohcjrsetqu .gt_fraction_numerator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: 0.45em;
 }
 
-#cekssclpht .gt_fraction_denominator {
+#ohcjrsetqu .gt_fraction_denominator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: -0.05em;
@@ -1193,8 +1201,12 @@ tidy_titanic %>%
 # Step 2a. build a function where visual arrangement leads.
 
 ``` r
-two_way_prop <- function(data, y, y0, y00, x = NULL, value = NULL, fun = sum, within, within2,  pivot = !is.null(x), percent = T, round = F){
-  
+pivot_prop_script <- readLines("./R/pivot_prop.R")
+```
+
+``` r
+pivot_prop <- function(data, y, y0, y00, x = NULL, value = NULL, fun = sum, within, within2,  pivot = !is.null(x), percent = T, round = F){
+
   y00 <- enquo(y00)
   y0 <- enquo(y0)
   x <- enquo(x)
@@ -1202,32 +1214,32 @@ two_way_prop <- function(data, y, y0, y00, x = NULL, value = NULL, fun = sum, wi
   within <- enquo(within)
   within2 <- enquo(within2)
 
-  
+
   if(is.null(value)){
     data <- data %>% mutate(value = 1)
   }else{
     value <- enquo(value)
   }
-  
-  data %>% 
-  group_by(!!y00, !!y0, !!y, !!x) %>% 
-  summarize(value = fun(value)) %>% 
-  group_by(!!within, !!within2) %>% 
-  mutate(prop = (value/sum(value)*ifelse(percent, 100, 1)) %>% round(1)) %>% 
-  select(-value) %>%
-  ungroup() ->
-tidy
-  
+
+  data %>%
+    group_by(!!y00, !!y0, !!y, !!x) %>%
+    summarize(value = fun(value)) %>%
+    group_by(!!within, !!within2) %>%
+    mutate(prop = (value/sum(value)*ifelse(percent, 100, 1)) %>% round(1)) %>%
+    select(-value) %>%
+    ungroup() ->
+    tidy
+
   if(pivot){
-    
-    tidy %>% 
-      pivot_wider(values_from = prop, names_from = !!x) 
-    
+
+    tidy %>%
+      pivot_wider(values_from = prop, names_from = !!x)
+
   }else{
-    
+
     tidy
   }
-  
+
 }
 ```
 
@@ -1235,7 +1247,7 @@ tidy
 
 ``` r
 tidy_titanic %>% 
-  two_way_prop(y = Survived, x = Class, within = Class)
+  pivot_prop(y = Survived, x = Class, within = Class)
 #> # A tibble: 2 × 5
 #>   Survived `1st` `2nd` `3rd`  Crew
 #>   <fct>    <dbl> <dbl> <dbl> <dbl>
@@ -1243,7 +1255,7 @@ tidy_titanic %>%
 #> 2 Yes       62.5  41.4  25.2    24
 
 tidy_titanic %>% 
-  two_way_prop(y0 = Survived, 
+  pivot_prop(y0 = Survived, 
                y = Sex, 
                x = Class, 
                within = Survived)
@@ -1256,7 +1268,7 @@ tidy_titanic %>%
 #> 4 Yes      Female  19.8  13.1  12.7   2.8
 
 tidy_titanic %>% 
-  two_way_prop(y0 = Survived, 
+  pivot_prop(y0 = Survived, 
                y = Sex, 
                x = Class, 
                within = Survived,
@@ -1272,7 +1284,7 @@ tidy_titanic %>%
 
 ``` r
 tidy_titanic %>% 
-  two_way_prop(y0 = Survived, 
+  pivot_prop(y0 = Survived, 
                y = Sex, 
                x = Class, 
                within = Survived, pivot = F) %>% 
@@ -1288,7 +1300,7 @@ tidy_titanic %>%
 
 ``` r
 tidy_titanic %>% 
-  two_way_prop(y0 = Survived, 
+  pivot_prop(y0 = Survived, 
                y = Sex, 
                x = Class, 
                within = Survived, 
@@ -1314,4 +1326,4 @@ tidy_titanic %>%
 4.  What about summary columns, rows. Column totals, etc. Maybe not very
     tidy…
 
-<img src="man/figures/README-unnamed-chunk-5-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-8-1.png" width="100%" />
