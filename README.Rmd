@@ -33,3 +33,298 @@ Titanic %>%
   data.frame() ->
 flat_titanic ; flat_titanic %>% head()
 ```
+
+---
+
+# Step 0. Some observations
+
+## ggplot2: user needs to describe layout of table
+
+you can make a visual pivot table in ggplot2; analyst job is to describe the form. How will it look
+
+specify 3 things - start with visual layout
+
+- specify x
+- specify y
+- specify count type geom
+
+```{r}
+tidy_titanic %>% 
+  ggplot() + 
+  aes(x = Sex, y = Survived) + 
+  geom_jitter() + 
+  geom_count(color = "blue")
+```
+
+---
+
+## With existing pivot tools, description isn't so visual
+
+- specify vars
+- specify aggregation
+- specify visual arrangement (names from?) <- this comes last
+
+```{r slow} 
+tidy_titanic %>% 
+  group_by(Sex, Survived) %>% 
+  summarize(value = n()) %>% 
+  pivot_wider(names_from = Survived)
+```
+
+---
+
+# Step 1a. Make Functions to allow description of final table, pivot_count and pivot_calc
+
+## x argument is horizontal elements (columns) and y is vertical elements (rows)
+
+
+```{r count}
+pivot_count <- function(data, y, y0, y00, x = NULL, 
+                          value = NULL, 
+                          fun = sum, 
+                          pivot = T #ifelse(is.null(x),F,T)
+                          ){
+  
+  y00 <- enquo(y00)
+  y0 <- enquo(y0)
+  y <- enquo(y)
+  x <- enquo(x)
+
+    data <- data %>% mutate(count = 1)
+  
+tidy <- data %>% 
+  group_by(!!y00, !!y0, !!y, !!x) %>% 
+  summarize(value = fun(count)) %>% 
+  ungroup()
+  
+  if(pivot){#or x is null
+  tidy %>% 
+    pivot_wider(names_from = !!x)
+  }else{
+  tidy
+  }
+
+}
+```
+
+
+```{r calc}
+pivot_calc <- function(data, y, y0, y00, x = NULL, 
+                          value, 
+                          fun = sum, 
+                          pivot = T #ifelse(is.null(x),F,T)
+                          ){
+  
+  y00 <- enquo(y00)
+  y0 <- enquo(y0)
+  y <- enquo(y)
+  x <- enquo(x)
+  value <- enquo(value)
+  
+tidy <- data %>% 
+  group_by(!!y00, !!y0, !!y, !!x) %>% 
+  summarize(value = fun(!!value)) %>% 
+  ungroup()
+  
+  if(pivot){#or x is null
+  tidy %>% 
+    pivot_wider(names_from = !!x)
+  }else{
+  tidy
+  }
+
+}
+```
+
+
+# Step 1b. Using those functions
+
+```{r examples}
+tidy_titanic %>% 
+   pivot_count(x = Sex)
+
+tidy_titanic %>% 
+  pivot_count(y = Survived, x = Sex) 
+
+tidy_titanic %>% 
+  pivot_count(y = Survived, x = Sex, y0 = Class)
+
+# for fun organize like it will appear visually in code
+tidy_titanic %>% 
+  pivot_count(                          x = Sex, 
+              y0 = Class, y = Survived          )
+```
+
+
+## After designing your table you might actually want to have the calculation in long form.
+
+```{r}
+tidy_titanic %>% 
+  pivot_count(x = Sex, y = Survived, pivot = F)
+```
+
+## 1b. pivot_calc using pivot calc function for non count aggregation
+
+### just for fun arrange the code how the table will look
+
+```{r calc2}
+flat_titanic %>%
+  pivot_calc(              x = Sex, 
+             y = Survived, value = Freq, fun = sum)
+```
+
+## 1b style. use another tool to style
+
+### goal of functions is not to style - just to make calculation faster by using a visually driven API
+
+```{r style}
+tidy_titanic %>% 
+  pivot_count(x = Sex, y = Survived, y0 = Class) %>% 
+  group_by(Class) %>% 
+  gt::gt()
+```
+
+# 
+
+```{r style2}
+tidy_titanic %>% 
+  pivot_count(x = Sex, y = Survived, y0 = Class, y00 = Age) %>% 
+  group_by(Age) %>% 
+  gt::gt()
+```
+
+# Back to Step 0, Observations: use existing tools to calculate *proportions* is many step process
+
+### feels like lots of gymnastics... a vis first approach is what we are after
+
+```{r proportionslow}
+tidy_titanic %>% 
+  group_by(Sex, Survived) %>% 
+  summarize(value = n()) %>% 
+  group_by(Sex) %>% 
+  mutate(prop = value/sum(value)) %>% 
+  select(-value) %>% 
+  pivot_wider(values_from = prop, names_from = Sex)
+```
+
+# Step 2a. build a function where visual arrangement leads.
+
+```{r propfunction}
+two_way_prop <- function(data, y, y0, y00, x = NULL, value = NULL, fun = sum, within, within2,  pivot = !is.null(x), percent = T, round = F){
+  
+  y00 <- enquo(y00)
+  y0 <- enquo(y0)
+  x <- enquo(x)
+  y <- enquo(y)
+  within <- enquo(within)
+  within2 <- enquo(within2)
+
+  
+  if(is.null(value)){
+    data <- data %>% mutate(value = 1)
+  }else{
+    value <- enquo(value)
+  }
+  
+  data %>% 
+  group_by(!!y00, !!y0, !!y, !!x) %>% 
+  summarize(value = fun(value)) %>% 
+  group_by(!!within, !!within2) %>% 
+  mutate(prop = (value/sum(value)*ifelse(percent, 100, 1)) %>% round(1)) %>% 
+  select(-value) %>%
+  ungroup() ->
+tidy
+  
+  if(pivot){
+    
+    tidy %>% 
+      pivot_wider(values_from = prop, names_from = !!x) 
+    
+  }else{
+    
+    tidy
+  }
+  
+}
+```
+
+# Step 2b. using the pivot_prop
+
+```{r propusage}
+tidy_titanic %>% 
+  two_way_prop(y = Survived, x = Class, within = Class)
+
+tidy_titanic %>% 
+  two_way_prop(y0 = Survived, 
+               y = Sex, 
+               x = Class, 
+               within = Survived)
+
+tidy_titanic %>% 
+  two_way_prop(y0 = Survived, 
+               y = Sex, 
+               x = Class, 
+               within = Survived,
+               within2 = Sex)
+```
+
+```{r propgraph}
+tidy_titanic %>% 
+  two_way_prop(y0 = Survived, 
+               y = Sex, 
+               x = Class, 
+               within = Survived, pivot = F) %>% 
+  ggplot() +
+  aes(x = Class, y = Sex) +
+  facet_grid(rows = vars(Survived)) +
+  geom_tile() +
+  aes(fill = prop) + 
+  geom_text(aes(label = prop %>% round(3)))
+```
+
+```{r propgraph2}
+tidy_titanic %>% 
+  two_way_prop(y0 = Survived, 
+               y = Sex, 
+               x = Class, 
+               within = Survived, 
+               within2 = Sex, pivot = F) %>% 
+  ggplot() +
+  aes(x = Class, y = 1) +
+  facet_grid(rows = vars(Survived, Sex)) +
+  geom_tile() +
+  aes(fill = prop) + 
+  geom_text(aes(label = prop %>% round(3)))
+
+```
+
+# Reflections and questions
+
+1. Does this already exist?
+2. How can API improve? possibly rows = vars(y00, y0, y), cols = vars(x).  and within = vars(?, ?)  This requires more digging into tidy eval.  What about multiple x vars?
+3. How can internals improve?  Also tidy eval is old I think. defaults for missing data. 
+4. What about summary columns, rows.  Column totals, etc.  Maybe not very tidy...
+
+
+```{r, echo = F}
+library(ggstamp)
+
+ggcanvas() + 
+  stamp_point(size = 8, color = "grey85") + 
+  stamp_spoke(angle = pi, size = 1.7, 
+              radius = .65, color = "grey85") +
+  stamp_point(size = 5, color = "grey85") + 
+  stamp_point(size = 3, color = "grey55") + 
+  stamp_spoke(angle = .45, size = 1.7, 
+              radius = .85, color = "grey55") +
+  stamp_polygon_holes(y0 = .25) + 
+  stamp_text(label = "tidy", hjust = 1.3,
+             color = "violetred", 
+               vjust = -.2, size = 17) + 
+  stamp_text(label = "pivot", hjust = -.1,
+             angle = 25, color = "violetred", 
+               vjust = -.2, size = 17) + 
+  ggstamp::theme_void_fill(fill = "darkslateblue") + 
+  stamp_polygon(color = "lightslateblue", 
+                alpha = 0, y0 = .25, size = 4)
+```
