@@ -1,0 +1,35 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+```{r}
+knitr::opts_chunk$set(message = F, warning = F)
+```
+
+
+# Step 00. prep some data, records and flat
+
+```{r prep}
+library(tidyverse)
+library(magrittr)
+
+Titanic %>% 
+  data.frame() %>% 
+  uncount(weights = Freq) ->
+tidy_titanic ; tidy_titanic %>% head()
+
+Titanic %>% 
+  data.frame() ->
+flat_titanic ; flat_titanic %>% head()
+```
