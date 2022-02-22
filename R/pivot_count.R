@@ -1,3 +1,18 @@
+#' Title
+#'
+#' @param data
+#' @param y
+#' @param y0
+#' @param y00
+#' @param x
+#' @param value
+#' @param fun
+#' @param pivot
+#'
+#' @return
+#' @export
+#'
+#' @examples
 pivot_count <- function(data, y, y0, y00, x = NULL,
                         value = NULL,
                         fun = sum,

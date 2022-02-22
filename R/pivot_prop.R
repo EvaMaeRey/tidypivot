@@ -1,3 +1,22 @@
+#' Title
+#'
+#' @param data
+#' @param y
+#' @param y0
+#' @param y00
+#' @param x
+#' @param value
+#' @param fun
+#' @param within
+#' @param within2
+#' @param pivot
+#' @param percent
+#' @param round
+#'
+#' @return
+#' @export
+#'
+#' @examples
 pivot_prop <- function(data, y, y0, y00, x = NULL, value = NULL, fun = sum, within, within2,  pivot = !is.null(x), percent = T, round = F){
 
   y00 <- enquo(y00)
