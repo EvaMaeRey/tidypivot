@@ -3,7 +3,7 @@ output: github_document
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-  
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -108,12 +108,12 @@ tidy_titanic %>%
   pivot_count(y = Survived, x = Sex) 
 
 tidy_titanic %>% 
-  pivot_count(y = Survived, x = Sex, y0 = Class)
+  pivot_count(y = c(Survived, Class), x = Sex)
 
 # for fun organize like it will appear visually in code
 tidy_titanic %>% 
   pivot_count(                          x = Sex, 
-              y0 = Class, y = Survived          )
+              y = c(Survived, Class)        )
 ```
 
 
@@ -139,8 +139,8 @@ flat_titanic %>%
 ### goal of functions is not to style - just to make calculation faster by using a visually driven API
 
 ```{r style}
-tidy_titanic %>% 
-  pivot_count(x = Sex, y = Survived, y0 = Class) %>% 
+tidy_titanic %>%  
+  pivot_count(x = Sex, y = c(Survived, Class)) %>% 
   group_by(Class) %>% 
   gt::gt()
 ```
@@ -149,7 +149,7 @@ tidy_titanic %>%
 
 ```{r style2}
 tidy_titanic %>% 
-  pivot_count(x = Sex, y = Survived, y0 = Class, y00 = Age) %>% 
+  pivot_count(x = Sex, c(y = Survived, Class, Age)) %>% 
   group_by(Age) %>% 
   gt::gt()
 ```

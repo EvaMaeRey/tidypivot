@@ -17,30 +17,19 @@
 #' library(magrittr)
 #' create_tidy_titanic() %>%
 #' pivot_count(Sex, Survived)
-pivot_count <- function(data, y, y0, y00, x = NULL,
-                        value = NULL,
-                        fun = sum,
-                        pivot = T #ifelse(is.null(x),F,T)
-){
+pivot_count <- function(data, x = NULL, y = NULL, pivot = F){
 
-  y00 <- enquo(y00)
-  y0 <- enquo(y0)
-  y <- enquo(y)
-  x <- enquo(x)
-
-  data <- data %>% dplyr::mutate(count = 1)
+  cols_quo <- enquo(x)
 
   tidy <- data %>%
-    dplyr::group_by(!!y00, !!y0, !!y, !!x) %>%
-    dplyr::summarize(value = fun(.data$count)) %>%
-    dplyr::ungroup()
+    group_by(across(c({{y}}, {{x}}))) %>%
+    summarize(value = n()) %>%
+    ungroup()
 
-  if(pivot){#or x is null
-    tidy %>%
-      tidyr::pivot_wider(names_from = !!x,
-                         values_from = value)
-  }else{
-    tidy
-  }
+  if(rlang::quo_is_null(cols_quo) | pivot == F) return(tidy)
 
+  tidy %>%
+    pivot_wider(names_from = {{x}})
 }
+
+

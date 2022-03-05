@@ -111,32 +111,19 @@ pivot_count_script <- readLines("./R/pivot_count.R")
 #' library(magrittr)
 #' create_tidy_titanic() %>%
 #' pivot_count(Sex, Survived)
-pivot_count <- function(data, y, y0, y00, x = NULL,
-                        value = NULL,
-                        fun = sum,
-                        pivot = T #ifelse(is.null(x),F,T)
-){
+pivot_count <- function(data, x = NULL, y = NULL, pivot = F){
 
-  y00 <- enquo(y00)
-  y0 <- enquo(y0)
-  y <- enquo(y)
-  x <- enquo(x)
-
-  data <- data %>% dplyr::mutate(count = 1)
+  cols_quo <- enquo(x)
 
   tidy <- data %>%
-    dplyr::group_by(!!y00, !!y0, !!y, !!x) %>%
-    dplyr::summarize(value = fun(.data$count)) %>%
-    dplyr::ungroup()
+    group_by(across(c({{y}}, {{x}}))) %>%
+    summarize(value = n()) %>%
+    ungroup()
 
-  if(pivot){#or x is null
-    tidy %>%
-      tidyr::pivot_wider(names_from = !!x,
-                         values_from = value)
-  }else{
-    tidy
-  }
+  if(rlang::quo_is_null(cols_quo) | pivot == F) return(tidy)
 
+  tidy %>%
+    pivot_wider(names_from = {{x}})
 }
 ```
 
@@ -192,48 +179,67 @@ pivot_calc <- function(data, y, y0, y00, x = NULL,
 ``` r
 tidy_titanic %>% 
    pivot_count(x = Sex)
-#> # A tibble: 1 × 2
-#>    Male Female
-#>   <dbl>  <dbl>
-#> 1  1731    470
+#> # A tibble: 2 × 2
+#>   Sex    value
+#>   <fct>  <int>
+#> 1 Male    1731
+#> 2 Female   470
 
 tidy_titanic %>% 
   pivot_count(y = Survived, x = Sex) 
-#> # A tibble: 2 × 3
-#>   Survived  Male Female
-#>   <fct>    <dbl>  <dbl>
-#> 1 No        1364    126
-#> 2 Yes        367    344
+#> # A tibble: 4 × 3
+#>   Survived Sex    value
+#>   <fct>    <fct>  <int>
+#> 1 No       Male    1364
+#> 2 No       Female   126
+#> 3 Yes      Male     367
+#> 4 Yes      Female   344
 
 tidy_titanic %>% 
-  pivot_count(y = Survived, x = Sex, y0 = Class)
-#> # A tibble: 8 × 4
-#>   Class Survived  Male Female
-#>   <fct> <fct>    <dbl>  <dbl>
-#> 1 1st   No         118      4
-#> 2 1st   Yes         62    141
-#> 3 2nd   No         154     13
-#> 4 2nd   Yes         25     93
-#> 5 3rd   No         422    106
-#> 6 3rd   Yes         88     90
-#> 7 Crew  No         670      3
-#> 8 Crew  Yes        192     20
+  pivot_count(y = c(Survived, Class), x = Sex)
+#> # A tibble: 16 × 4
+#>    Survived Class Sex    value
+#>    <fct>    <fct> <fct>  <int>
+#>  1 No       1st   Male     118
+#>  2 No       1st   Female     4
+#>  3 No       2nd   Male     154
+#>  4 No       2nd   Female    13
+#>  5 No       3rd   Male     422
+#>  6 No       3rd   Female   106
+#>  7 No       Crew  Male     670
+#>  8 No       Crew  Female     3
+#>  9 Yes      1st   Male      62
+#> 10 Yes      1st   Female   141
+#> 11 Yes      2nd   Male      25
+#> 12 Yes      2nd   Female    93
+#> 13 Yes      3rd   Male      88
+#> 14 Yes      3rd   Female    90
+#> 15 Yes      Crew  Male     192
+#> 16 Yes      Crew  Female    20
 
 # for fun organize like it will appear visually in code
 tidy_titanic %>% 
   pivot_count(                          x = Sex, 
-              y0 = Class, y = Survived          )
-#> # A tibble: 8 × 4
-#>   Class Survived  Male Female
-#>   <fct> <fct>    <dbl>  <dbl>
-#> 1 1st   No         118      4
-#> 2 1st   Yes         62    141
-#> 3 2nd   No         154     13
-#> 4 2nd   Yes         25     93
-#> 5 3rd   No         422    106
-#> 6 3rd   Yes         88     90
-#> 7 Crew  No         670      3
-#> 8 Crew  Yes        192     20
+              y = c(Survived, Class)        )
+#> # A tibble: 16 × 4
+#>    Survived Class Sex    value
+#>    <fct>    <fct> <fct>  <int>
+#>  1 No       1st   Male     118
+#>  2 No       1st   Female     4
+#>  3 No       2nd   Male     154
+#>  4 No       2nd   Female    13
+#>  5 No       3rd   Male     422
+#>  6 No       3rd   Female   106
+#>  7 No       Crew  Male     670
+#>  8 No       Crew  Female     3
+#>  9 Yes      1st   Male      62
+#> 10 Yes      1st   Female   141
+#> 11 Yes      2nd   Male      25
+#> 12 Yes      2nd   Female    93
+#> 13 Yes      3rd   Male      88
+#> 14 Yes      3rd   Female    90
+#> 15 Yes      Crew  Male     192
+#> 16 Yes      Crew  Female    20
 ```
 
 ## After designing your table you might actually want to have the calculation in long form.
@@ -243,7 +249,7 @@ tidy_titanic %>%
   pivot_count(x = Sex, y = Survived, pivot = F)
 #> # A tibble: 4 × 3
 #>   Survived Sex    value
-#>   <fct>    <fct>  <dbl>
+#>   <fct>    <fct>  <int>
 #> 1 No       Male    1364
 #> 2 No       Female   126
 #> 3 Yes      Male     367
@@ -270,18 +276,18 @@ flat_titanic %>%
 ### goal of functions is not to style - just to make calculation faster by using a visually driven API
 
 ``` r
-tidy_titanic %>% 
-  pivot_count(x = Sex, y = Survived, y0 = Class) %>% 
+tidy_titanic %>%  
+  pivot_count(x = Sex, y = c(Survived, Class)) %>% 
   group_by(Class) %>% 
   gt::gt()
 ```
 
-<div id="flhiqfjuuh" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="yeikkoctba" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#flhiqfjuuh .gt_table {
+#yeikkoctba .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -306,7 +312,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#flhiqfjuuh .gt_heading {
+#yeikkoctba .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -318,7 +324,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#flhiqfjuuh .gt_title {
+#yeikkoctba .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -330,7 +336,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#flhiqfjuuh .gt_subtitle {
+#yeikkoctba .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -342,13 +348,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#flhiqfjuuh .gt_bottom_border {
+#yeikkoctba .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#flhiqfjuuh .gt_col_headings {
+#yeikkoctba .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -363,7 +369,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#flhiqfjuuh .gt_col_heading {
+#yeikkoctba .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -383,7 +389,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#flhiqfjuuh .gt_column_spanner_outer {
+#yeikkoctba .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -395,15 +401,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#flhiqfjuuh .gt_column_spanner_outer:first-child {
+#yeikkoctba .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#flhiqfjuuh .gt_column_spanner_outer:last-child {
+#yeikkoctba .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#flhiqfjuuh .gt_column_spanner {
+#yeikkoctba .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -415,7 +421,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#flhiqfjuuh .gt_group_heading {
+#yeikkoctba .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -440,7 +446,7 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#flhiqfjuuh .gt_empty_group_heading {
+#yeikkoctba .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -455,15 +461,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#flhiqfjuuh .gt_from_md > :first-child {
+#yeikkoctba .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#flhiqfjuuh .gt_from_md > :last-child {
+#yeikkoctba .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#flhiqfjuuh .gt_row {
+#yeikkoctba .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -482,7 +488,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#flhiqfjuuh .gt_stub {
+#yeikkoctba .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -495,7 +501,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#flhiqfjuuh .gt_stub_row_group {
+#yeikkoctba .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -509,11 +515,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#flhiqfjuuh .gt_row_group_first td {
+#yeikkoctba .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#flhiqfjuuh .gt_summary_row {
+#yeikkoctba .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -523,16 +529,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#flhiqfjuuh .gt_first_summary_row {
+#yeikkoctba .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#flhiqfjuuh .gt_first_summary_row.thick {
+#yeikkoctba .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#flhiqfjuuh .gt_last_summary_row {
+#yeikkoctba .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -542,7 +548,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#flhiqfjuuh .gt_grand_summary_row {
+#yeikkoctba .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -552,7 +558,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#flhiqfjuuh .gt_first_grand_summary_row {
+#yeikkoctba .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -562,11 +568,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#flhiqfjuuh .gt_striped {
+#yeikkoctba .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#flhiqfjuuh .gt_table_body {
+#yeikkoctba .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -575,7 +581,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#flhiqfjuuh .gt_footnotes {
+#yeikkoctba .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -589,7 +595,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#flhiqfjuuh .gt_footnote {
+#yeikkoctba .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -598,7 +604,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#flhiqfjuuh .gt_sourcenotes {
+#yeikkoctba .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -612,7 +618,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#flhiqfjuuh .gt_sourcenote {
+#yeikkoctba .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -620,60 +626,60 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#flhiqfjuuh .gt_left {
+#yeikkoctba .gt_left {
   text-align: left;
 }
 
-#flhiqfjuuh .gt_center {
+#yeikkoctba .gt_center {
   text-align: center;
 }
 
-#flhiqfjuuh .gt_right {
+#yeikkoctba .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#flhiqfjuuh .gt_font_normal {
+#yeikkoctba .gt_font_normal {
   font-weight: normal;
 }
 
-#flhiqfjuuh .gt_font_bold {
+#yeikkoctba .gt_font_bold {
   font-weight: bold;
 }
 
-#flhiqfjuuh .gt_font_italic {
+#yeikkoctba .gt_font_italic {
   font-style: italic;
 }
 
-#flhiqfjuuh .gt_super {
+#yeikkoctba .gt_super {
   font-size: 65%;
 }
 
-#flhiqfjuuh .gt_footnote_marks {
+#yeikkoctba .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#flhiqfjuuh .gt_asterisk {
+#yeikkoctba .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#flhiqfjuuh .gt_slash_mark {
+#yeikkoctba .gt_slash_mark {
   font-size: 0.7em;
   line-height: 0.7em;
   vertical-align: 0.15em;
 }
 
-#flhiqfjuuh .gt_fraction_numerator {
+#yeikkoctba .gt_fraction_numerator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: 0.45em;
 }
 
-#flhiqfjuuh .gt_fraction_denominator {
+#yeikkoctba .gt_fraction_denominator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: -0.05em;
@@ -684,8 +690,8 @@ tidy_titanic %>%
   <thead class="gt_col_headings">
     <tr>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Survived</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Male</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Female</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Sex</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">value</th>
     </tr>
   </thead>
   <tbody class="gt_table_body">
@@ -693,37 +699,61 @@ tidy_titanic %>%
       <td colspan="3" class="gt_group_heading">1st</td>
     </tr>
     <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_right">118</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">118</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">4</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_right">62</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">62</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">141</td></tr>
     <tr class="gt_group_heading_row">
       <td colspan="3" class="gt_group_heading">2nd</td>
     </tr>
     <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_right">154</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">154</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">13</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_right">25</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">25</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">93</td></tr>
     <tr class="gt_group_heading_row">
       <td colspan="3" class="gt_group_heading">3rd</td>
     </tr>
     <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_right">422</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">422</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">106</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_right">88</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">88</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">90</td></tr>
     <tr class="gt_group_heading_row">
       <td colspan="3" class="gt_group_heading">Crew</td>
     </tr>
     <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_right">670</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">670</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">3</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_right">192</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">192</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">20</td></tr>
   </tbody>
   
@@ -735,17 +765,17 @@ tidy_titanic %>%
 
 ``` r
 tidy_titanic %>% 
-  pivot_count(x = Sex, y = Survived, y0 = Class, y00 = Age) %>% 
+  pivot_count(x = Sex, c(y = Survived, Class, Age)) %>% 
   group_by(Age) %>% 
   gt::gt()
 ```
 
-<div id="bvgmxjgmbq" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="msvlomjtbc" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#bvgmxjgmbq .gt_table {
+#msvlomjtbc .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -770,7 +800,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#bvgmxjgmbq .gt_heading {
+#msvlomjtbc .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -782,7 +812,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#bvgmxjgmbq .gt_title {
+#msvlomjtbc .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -794,7 +824,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#bvgmxjgmbq .gt_subtitle {
+#msvlomjtbc .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -806,13 +836,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#bvgmxjgmbq .gt_bottom_border {
+#msvlomjtbc .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#bvgmxjgmbq .gt_col_headings {
+#msvlomjtbc .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -827,7 +857,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#bvgmxjgmbq .gt_col_heading {
+#msvlomjtbc .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -847,7 +877,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#bvgmxjgmbq .gt_column_spanner_outer {
+#msvlomjtbc .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -859,15 +889,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#bvgmxjgmbq .gt_column_spanner_outer:first-child {
+#msvlomjtbc .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#bvgmxjgmbq .gt_column_spanner_outer:last-child {
+#msvlomjtbc .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#bvgmxjgmbq .gt_column_spanner {
+#msvlomjtbc .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -879,7 +909,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#bvgmxjgmbq .gt_group_heading {
+#msvlomjtbc .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -904,7 +934,7 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#bvgmxjgmbq .gt_empty_group_heading {
+#msvlomjtbc .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -919,15 +949,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#bvgmxjgmbq .gt_from_md > :first-child {
+#msvlomjtbc .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#bvgmxjgmbq .gt_from_md > :last-child {
+#msvlomjtbc .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#bvgmxjgmbq .gt_row {
+#msvlomjtbc .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -946,7 +976,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#bvgmxjgmbq .gt_stub {
+#msvlomjtbc .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -959,7 +989,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#bvgmxjgmbq .gt_stub_row_group {
+#msvlomjtbc .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -973,11 +1003,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#bvgmxjgmbq .gt_row_group_first td {
+#msvlomjtbc .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#bvgmxjgmbq .gt_summary_row {
+#msvlomjtbc .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -987,16 +1017,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#bvgmxjgmbq .gt_first_summary_row {
+#msvlomjtbc .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#bvgmxjgmbq .gt_first_summary_row.thick {
+#msvlomjtbc .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#bvgmxjgmbq .gt_last_summary_row {
+#msvlomjtbc .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1006,7 +1036,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#bvgmxjgmbq .gt_grand_summary_row {
+#msvlomjtbc .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1016,7 +1046,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#bvgmxjgmbq .gt_first_grand_summary_row {
+#msvlomjtbc .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1026,11 +1056,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#bvgmxjgmbq .gt_striped {
+#msvlomjtbc .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#bvgmxjgmbq .gt_table_body {
+#msvlomjtbc .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1039,7 +1069,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#bvgmxjgmbq .gt_footnotes {
+#msvlomjtbc .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1053,7 +1083,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#bvgmxjgmbq .gt_footnote {
+#msvlomjtbc .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -1062,7 +1092,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#bvgmxjgmbq .gt_sourcenotes {
+#msvlomjtbc .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1076,7 +1106,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#bvgmxjgmbq .gt_sourcenote {
+#msvlomjtbc .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -1084,60 +1114,60 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#bvgmxjgmbq .gt_left {
+#msvlomjtbc .gt_left {
   text-align: left;
 }
 
-#bvgmxjgmbq .gt_center {
+#msvlomjtbc .gt_center {
   text-align: center;
 }
 
-#bvgmxjgmbq .gt_right {
+#msvlomjtbc .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#bvgmxjgmbq .gt_font_normal {
+#msvlomjtbc .gt_font_normal {
   font-weight: normal;
 }
 
-#bvgmxjgmbq .gt_font_bold {
+#msvlomjtbc .gt_font_bold {
   font-weight: bold;
 }
 
-#bvgmxjgmbq .gt_font_italic {
+#msvlomjtbc .gt_font_italic {
   font-style: italic;
 }
 
-#bvgmxjgmbq .gt_super {
+#msvlomjtbc .gt_super {
   font-size: 65%;
 }
 
-#bvgmxjgmbq .gt_footnote_marks {
+#msvlomjtbc .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#bvgmxjgmbq .gt_asterisk {
+#msvlomjtbc .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#bvgmxjgmbq .gt_slash_mark {
+#msvlomjtbc .gt_slash_mark {
   font-size: 0.7em;
   line-height: 0.7em;
   vertical-align: 0.15em;
 }
 
-#bvgmxjgmbq .gt_fraction_numerator {
+#msvlomjtbc .gt_fraction_numerator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: 0.45em;
 }
 
-#bvgmxjgmbq .gt_fraction_denominator {
+#msvlomjtbc .gt_fraction_denominator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: -0.05em;
@@ -1147,67 +1177,115 @@ tidy_titanic %>%
   
   <thead class="gt_col_headings">
     <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">y</th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Class</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Survived</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Male</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Female</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Sex</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">value</th>
     </tr>
   </thead>
   <tbody class="gt_table_body">
     <tr class="gt_group_heading_row">
-      <td colspan="4" class="gt_group_heading">Child</td>
-    </tr>
-    <tr class="gt_row_group_first"><td class="gt_row gt_center">1st</td>
-<td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_right">5</td>
-<td class="gt_row gt_right">1</td></tr>
-    <tr><td class="gt_row gt_center">2nd</td>
-<td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_right">11</td>
-<td class="gt_row gt_right">13</td></tr>
-    <tr><td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">No</td>
-<td class="gt_row gt_right">35</td>
-<td class="gt_row gt_right">17</td></tr>
-    <tr><td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_right">13</td>
-<td class="gt_row gt_right">14</td></tr>
-    <tr class="gt_group_heading_row">
       <td colspan="4" class="gt_group_heading">Adult</td>
     </tr>
-    <tr class="gt_row_group_first"><td class="gt_row gt_center">1st</td>
-<td class="gt_row gt_center">No</td>
-<td class="gt_row gt_right">118</td>
+    <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">1st</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">118</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">1st</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">4</td></tr>
-    <tr><td class="gt_row gt_center">1st</td>
-<td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_right">57</td>
-<td class="gt_row gt_right">140</td></tr>
-    <tr><td class="gt_row gt_center">2nd</td>
-<td class="gt_row gt_center">No</td>
-<td class="gt_row gt_right">154</td>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">2nd</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">154</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">2nd</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">13</td></tr>
-    <tr><td class="gt_row gt_center">2nd</td>
-<td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_right">14</td>
-<td class="gt_row gt_right">80</td></tr>
-    <tr><td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">No</td>
-<td class="gt_row gt_right">387</td>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">3rd</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">387</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">3rd</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">89</td></tr>
-    <tr><td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_right">75</td>
-<td class="gt_row gt_right">76</td></tr>
-    <tr><td class="gt_row gt_center">Crew</td>
-<td class="gt_row gt_center">No</td>
-<td class="gt_row gt_right">670</td>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">Crew</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">670</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">Crew</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">3</td></tr>
-    <tr><td class="gt_row gt_center">Crew</td>
-<td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_right">192</td>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">1st</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">57</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">1st</td>
+<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">140</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">2nd</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">14</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">2nd</td>
+<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">80</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">3rd</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">75</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">3rd</td>
+<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">76</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">Crew</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">192</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">Crew</td>
+<td class="gt_row gt_center">Female</td>
 <td class="gt_row gt_right">20</td></tr>
+    <tr class="gt_group_heading_row">
+      <td colspan="4" class="gt_group_heading">Child</td>
+    </tr>
+    <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">3rd</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">35</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">3rd</td>
+<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">17</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">1st</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">5</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">1st</td>
+<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">1</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">2nd</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">11</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">2nd</td>
+<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">13</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">3rd</td>
+<td class="gt_row gt_center">Male</td>
+<td class="gt_row gt_right">13</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">3rd</td>
+<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">14</td></tr>
   </tbody>
   
   

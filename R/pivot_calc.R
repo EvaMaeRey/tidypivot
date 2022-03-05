@@ -2,11 +2,7 @@
 #'
 #' @param data
 #' @param y
-#' @param y0
-#' @param y00
 #' @param x
-#' @param value
-#' @param fun
 #' @param pivot
 #'
 #' @return
