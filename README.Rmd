@@ -20,6 +20,7 @@ knitr::opts_chunk$set(message = F, warning = F)
 library(tidypivot)
 ```
 
+note: see original discussion here: https://evamaerey.github.io/mytidytuesday/2022-02-14-tables/tables.html and thoughtful contributions from @shannonpileggi and @brshallow https://github.com/EvaMaeRey/mytidytuesday/issues/3
 
 # Step 00. prep some data, records and flat
 
@@ -102,18 +103,18 @@ pivot_calc_script <- readLines("./R/pivot_calc.R")
 
 ```{r examples}
 tidy_titanic %>% 
-   pivot_count(x = Sex)
+   pivot_count(cols = Sex)
 
 tidy_titanic %>% 
-  pivot_count(y = Survived, x = Sex) 
+  pivot_count(rows = Survived, cols = Sex) 
 
 tidy_titanic %>% 
-  pivot_count(y = c(Survived, Class), x = Sex)
+  pivot_count(rows = c(Survived, Class), cols = Sex)
 
 # for fun organize like it will appear visually in code
 tidy_titanic %>% 
-  pivot_count(                          x = Sex, 
-              y = c(Survived, Class)        )
+  pivot_count(                          cols = Sex, 
+              rows = c(Survived, Class)        )
 ```
 
 
@@ -121,7 +122,7 @@ tidy_titanic %>%
 
 ```{r}
 tidy_titanic %>% 
-  pivot_count(x = Sex, y = Survived, pivot = F)
+  pivot_count(cols = Sex, rows = Survived, pivot = F)
 ```
 
 ## 1b. pivot_calc using pivot calc function for non count aggregation
@@ -130,8 +131,8 @@ tidy_titanic %>%
 
 ```{r calc2}
 flat_titanic %>%
-  pivot_calc(              x = Sex, 
-             y = Survived, value = Freq, fun = sum)
+  pivot_calc(              cols = Sex, 
+             rows = Survived, value = Freq, fun = sum)
 ```
 
 ## 1b style. use another tool to style
@@ -140,7 +141,7 @@ flat_titanic %>%
 
 ```{r style}
 tidy_titanic %>%  
-  pivot_count(x = Sex, y = c(Survived, Class)) %>% 
+  pivot_count(cols = Sex, rows = c(Survived, Class)) %>% 
   group_by(Class) %>% 
   gt::gt()
 ```
@@ -149,7 +150,7 @@ tidy_titanic %>%
 
 ```{r style2}
 tidy_titanic %>% 
-  pivot_count(x = Sex, c(y = Survived, Class, Age)) %>% 
+  pivot_count(cols = Sex, c(rows = Survived, Class, Age)) %>% 
   group_by(Age) %>% 
   gt::gt()
 ```
@@ -185,27 +186,23 @@ pivot_prop_script <- readLines("./R/pivot_prop.R")
 
 ```{r propusage}
 tidy_titanic %>% 
-  pivot_prop(y = Survived, x = Class, within = Class)
+  pivot_prop(rows = Survived, cols = Class, within = Class)
 
 tidy_titanic %>% 
-  pivot_prop(y0 = Survived, 
-               y = Sex, 
-               x = Class, 
+  pivot_prop(rows = c(Survived, Sex), 
+               cols = Class, 
                within = Survived)
 
 tidy_titanic %>% 
-  pivot_prop(y0 = Survived, 
-               y = Sex, 
-               x = Class, 
-               within = Survived,
-               within2 = Sex)
+  pivot_prop(rows = c(Survived, Sex), 
+               cols = Class, 
+               within = c(Survived, Sex))
 ```
 
 ```{r propgraph}
 tidy_titanic %>% 
-  pivot_prop(y0 = Survived, 
-               y = Sex, 
-               x = Class, 
+  pivot_prop(rows = c(Survived, Sex), 
+               cols = Class, 
                within = Survived, pivot = F) %>% 
   ggplot() +
   aes(x = Class, y = Sex) +
@@ -217,11 +214,9 @@ tidy_titanic %>%
 
 ```{r propgraph2}
 tidy_titanic %>% 
-  pivot_prop(y0 = Survived, 
-               y = Sex, 
-               x = Class, 
-               within = Survived, 
-               within2 = Sex, pivot = F) %>% 
+  pivot_prop(rows = c(Survived, Sex), 
+               cols = Class, 
+               within = c(Survived, Sex), pivot = F) %>% 
   ggplot() +
   aes(x = Class, y = 1) +
   facet_grid(rows = vars(Survived, Sex)) +
@@ -251,7 +246,7 @@ ggcanvas() +
   stamp_spoke(angle = .45, size = 1.7, 
               radius = .85, color = "grey55") +
   stamp_polygon_holes(y0 = .25) + 
-  stamp_text(label = "tidy", hjust = 1.3,
+  stamp_text(label = "tidy", hjust = 1,
              color = "violetred", 
                vjust = -.2, size = 17) + 
   stamp_text(label = "pivot", hjust = -.1,

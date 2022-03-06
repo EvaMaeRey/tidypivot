@@ -9,7 +9,7 @@ pivot_prop(
   y,
   y0,
   y00,
-  x = NULL,
+  cols = NULL,
   value = NULL,
   fun = sum,
   within,

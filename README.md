@@ -5,6 +5,11 @@
 library(tidypivot)
 ```
 
+note: see original discussion here:
+<https://evamaerey.github.io/mytidytuesday/2022-02-14-tables/tables.html>
+and thoughtful contributions from @shannonpileggi and @brshallow
+<https://github.com/EvaMaeRey/mytidytuesday/issues/3>
+
 # Step 00. prep some data, records and flat
 
 ``` r
@@ -92,38 +97,23 @@ pivot_count_script <- readLines("./R/pivot_count.R")
 ```
 
 ``` r
-#' Title
-#'
-#' @param data
-#' @param y
-#' @param y0
-#' @param y00
-#' @param x
-#' @param value
-#' @param fun
-#' @param pivot
-#'
-#' @return
-#' @export
-#'
-#' @examples
 #' library(tidyverse)
 #' library(magrittr)
 #' create_tidy_titanic() %>%
 #' pivot_count(Sex, Survived)
-pivot_count <- function(data, x = NULL, y = NULL, pivot = F){
+pivot_count <- function(data, cols = NULL, rows = NULL, pivot = T){
 
-  cols_quo <- enquo(x)
+  cols_quo <- enquo(cols)
 
   tidy <- data %>%
-    group_by(across(c({{y}}, {{x}}))) %>%
+    group_by(across(c({{rows}}, {{cols}}))) %>%
     summarize(value = n()) %>%
     ungroup()
 
   if(rlang::quo_is_null(cols_quo) | pivot == F) return(tidy)
 
   tidy %>%
-    pivot_wider(names_from = {{x}})
+    pivot_wider(names_from = {{cols}})
 }
 ```
 
@@ -136,37 +126,33 @@ pivot_calc_script <- readLines("./R/pivot_calc.R")
 #'
 #' @param data
 #' @param y
-#' @param y0
-#' @param y00
 #' @param x
-#' @param value
-#' @param fun
 #' @param pivot
 #'
 #' @return
 #' @export
 #'
 #' @examples
-pivot_calc <- function(data, y, y0, y00, x = NULL,
-                       value,
+pivot_calc <- function(data, rows = NULL, cols = NULL,
+                       value = NULL,
                        fun = sum,
                        pivot = T #ifelse(is.null(x),F,T)
 ){
-
-  y00 <- enquo(y00)
-  y0 <- enquo(y0)
-  y <- enquo(y)
-  x <- enquo(x)
-  value <- enquo(value)
+#
+#   y00 <- enquo(y00)
+#   y0 <- enquo(y0)
+#   y <- enquo(y)
+#   x <- enquo(cols)
+#   value <- enquo(value)
 
   tidy <- data %>%
-    dplyr::group_by(!!y00, !!y0, !!y, !!x) %>%
-    dplyr::summarize(value = fun(!!value)) %>%
+    dplyr::group_by(across(c({{rows}}, {{cols}}))) %>%
+    dplyr::summarize(value = fun({{value}})) %>%
     dplyr::ungroup()
 
   if(pivot){#or x is null
     tidy %>%
-      tidyr::pivot_wider(names_from = !!x)
+      tidyr::pivot_wider(names_from = {{cols}})
   }else{
     tidy
   }
@@ -178,75 +164,56 @@ pivot_calc <- function(data, y, y0, y00, x = NULL,
 
 ``` r
 tidy_titanic %>% 
-   pivot_count(x = Sex)
-#> # A tibble: 2 × 2
-#>   Sex    value
-#>   <fct>  <int>
-#> 1 Male    1731
-#> 2 Female   470
+   pivot_count(cols = Sex)
+#> # A tibble: 1 × 2
+#>    Male Female
+#>   <int>  <int>
+#> 1  1731    470
 
 tidy_titanic %>% 
-  pivot_count(y = Survived, x = Sex) 
-#> # A tibble: 4 × 3
-#>   Survived Sex    value
-#>   <fct>    <fct>  <int>
-#> 1 No       Male    1364
-#> 2 No       Female   126
-#> 3 Yes      Male     367
-#> 4 Yes      Female   344
+  pivot_count(rows = Survived, cols = Sex) 
+#> # A tibble: 2 × 3
+#>   Survived  Male Female
+#>   <fct>    <int>  <int>
+#> 1 No        1364    126
+#> 2 Yes        367    344
 
 tidy_titanic %>% 
-  pivot_count(y = c(Survived, Class), x = Sex)
-#> # A tibble: 16 × 4
-#>    Survived Class Sex    value
-#>    <fct>    <fct> <fct>  <int>
-#>  1 No       1st   Male     118
-#>  2 No       1st   Female     4
-#>  3 No       2nd   Male     154
-#>  4 No       2nd   Female    13
-#>  5 No       3rd   Male     422
-#>  6 No       3rd   Female   106
-#>  7 No       Crew  Male     670
-#>  8 No       Crew  Female     3
-#>  9 Yes      1st   Male      62
-#> 10 Yes      1st   Female   141
-#> 11 Yes      2nd   Male      25
-#> 12 Yes      2nd   Female    93
-#> 13 Yes      3rd   Male      88
-#> 14 Yes      3rd   Female    90
-#> 15 Yes      Crew  Male     192
-#> 16 Yes      Crew  Female    20
+  pivot_count(rows = c(Survived, Class), cols = Sex)
+#> # A tibble: 8 × 4
+#>   Survived Class  Male Female
+#>   <fct>    <fct> <int>  <int>
+#> 1 No       1st     118      4
+#> 2 No       2nd     154     13
+#> 3 No       3rd     422    106
+#> 4 No       Crew    670      3
+#> 5 Yes      1st      62    141
+#> 6 Yes      2nd      25     93
+#> 7 Yes      3rd      88     90
+#> 8 Yes      Crew    192     20
 
 # for fun organize like it will appear visually in code
 tidy_titanic %>% 
-  pivot_count(                          x = Sex, 
-              y = c(Survived, Class)        )
-#> # A tibble: 16 × 4
-#>    Survived Class Sex    value
-#>    <fct>    <fct> <fct>  <int>
-#>  1 No       1st   Male     118
-#>  2 No       1st   Female     4
-#>  3 No       2nd   Male     154
-#>  4 No       2nd   Female    13
-#>  5 No       3rd   Male     422
-#>  6 No       3rd   Female   106
-#>  7 No       Crew  Male     670
-#>  8 No       Crew  Female     3
-#>  9 Yes      1st   Male      62
-#> 10 Yes      1st   Female   141
-#> 11 Yes      2nd   Male      25
-#> 12 Yes      2nd   Female    93
-#> 13 Yes      3rd   Male      88
-#> 14 Yes      3rd   Female    90
-#> 15 Yes      Crew  Male     192
-#> 16 Yes      Crew  Female    20
+  pivot_count(                          cols = Sex, 
+              rows = c(Survived, Class)        )
+#> # A tibble: 8 × 4
+#>   Survived Class  Male Female
+#>   <fct>    <fct> <int>  <int>
+#> 1 No       1st     118      4
+#> 2 No       2nd     154     13
+#> 3 No       3rd     422    106
+#> 4 No       Crew    670      3
+#> 5 Yes      1st      62    141
+#> 6 Yes      2nd      25     93
+#> 7 Yes      3rd      88     90
+#> 8 Yes      Crew    192     20
 ```
 
 ## After designing your table you might actually want to have the calculation in long form.
 
 ``` r
 tidy_titanic %>% 
-  pivot_count(x = Sex, y = Survived, pivot = F)
+  pivot_count(cols = Sex, rows = Survived, pivot = F)
 #> # A tibble: 4 × 3
 #>   Survived Sex    value
 #>   <fct>    <fct>  <int>
@@ -262,8 +229,8 @@ tidy_titanic %>%
 
 ``` r
 flat_titanic %>%
-  pivot_calc(              x = Sex, 
-             y = Survived, value = Freq, fun = sum)
+  pivot_calc(              cols = Sex, 
+             rows = Survived, value = Freq, fun = sum)
 #> # A tibble: 2 × 3
 #>   Survived  Male Female
 #>   <fct>    <dbl>  <dbl>
@@ -277,17 +244,17 @@ flat_titanic %>%
 
 ``` r
 tidy_titanic %>%  
-  pivot_count(x = Sex, y = c(Survived, Class)) %>% 
+  pivot_count(cols = Sex, rows = c(Survived, Class)) %>% 
   group_by(Class) %>% 
   gt::gt()
 ```
 
-<div id="yeikkoctba" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="ozmobnwnca" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#yeikkoctba .gt_table {
+#ozmobnwnca .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -312,7 +279,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#yeikkoctba .gt_heading {
+#ozmobnwnca .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -324,7 +291,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#yeikkoctba .gt_title {
+#ozmobnwnca .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -336,7 +303,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#yeikkoctba .gt_subtitle {
+#ozmobnwnca .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -348,13 +315,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#yeikkoctba .gt_bottom_border {
+#ozmobnwnca .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#yeikkoctba .gt_col_headings {
+#ozmobnwnca .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -369,7 +336,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#yeikkoctba .gt_col_heading {
+#ozmobnwnca .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -389,7 +356,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#yeikkoctba .gt_column_spanner_outer {
+#ozmobnwnca .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -401,15 +368,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#yeikkoctba .gt_column_spanner_outer:first-child {
+#ozmobnwnca .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#yeikkoctba .gt_column_spanner_outer:last-child {
+#ozmobnwnca .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#yeikkoctba .gt_column_spanner {
+#ozmobnwnca .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -421,7 +388,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#yeikkoctba .gt_group_heading {
+#ozmobnwnca .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -446,7 +413,7 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#yeikkoctba .gt_empty_group_heading {
+#ozmobnwnca .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -461,15 +428,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#yeikkoctba .gt_from_md > :first-child {
+#ozmobnwnca .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#yeikkoctba .gt_from_md > :last-child {
+#ozmobnwnca .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#yeikkoctba .gt_row {
+#ozmobnwnca .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -488,7 +455,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#yeikkoctba .gt_stub {
+#ozmobnwnca .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -501,7 +468,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#yeikkoctba .gt_stub_row_group {
+#ozmobnwnca .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -515,11 +482,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#yeikkoctba .gt_row_group_first td {
+#ozmobnwnca .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#yeikkoctba .gt_summary_row {
+#ozmobnwnca .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -529,16 +496,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#yeikkoctba .gt_first_summary_row {
+#ozmobnwnca .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#yeikkoctba .gt_first_summary_row.thick {
+#ozmobnwnca .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#yeikkoctba .gt_last_summary_row {
+#ozmobnwnca .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -548,7 +515,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#yeikkoctba .gt_grand_summary_row {
+#ozmobnwnca .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -558,7 +525,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#yeikkoctba .gt_first_grand_summary_row {
+#ozmobnwnca .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -568,11 +535,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#yeikkoctba .gt_striped {
+#ozmobnwnca .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#yeikkoctba .gt_table_body {
+#ozmobnwnca .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -581,7 +548,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#yeikkoctba .gt_footnotes {
+#ozmobnwnca .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -595,7 +562,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#yeikkoctba .gt_footnote {
+#ozmobnwnca .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -604,7 +571,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#yeikkoctba .gt_sourcenotes {
+#ozmobnwnca .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -618,7 +585,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#yeikkoctba .gt_sourcenote {
+#ozmobnwnca .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -626,60 +593,60 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#yeikkoctba .gt_left {
+#ozmobnwnca .gt_left {
   text-align: left;
 }
 
-#yeikkoctba .gt_center {
+#ozmobnwnca .gt_center {
   text-align: center;
 }
 
-#yeikkoctba .gt_right {
+#ozmobnwnca .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#yeikkoctba .gt_font_normal {
+#ozmobnwnca .gt_font_normal {
   font-weight: normal;
 }
 
-#yeikkoctba .gt_font_bold {
+#ozmobnwnca .gt_font_bold {
   font-weight: bold;
 }
 
-#yeikkoctba .gt_font_italic {
+#ozmobnwnca .gt_font_italic {
   font-style: italic;
 }
 
-#yeikkoctba .gt_super {
+#ozmobnwnca .gt_super {
   font-size: 65%;
 }
 
-#yeikkoctba .gt_footnote_marks {
+#ozmobnwnca .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#yeikkoctba .gt_asterisk {
+#ozmobnwnca .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#yeikkoctba .gt_slash_mark {
+#ozmobnwnca .gt_slash_mark {
   font-size: 0.7em;
   line-height: 0.7em;
   vertical-align: 0.15em;
 }
 
-#yeikkoctba .gt_fraction_numerator {
+#ozmobnwnca .gt_fraction_numerator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: 0.45em;
 }
 
-#yeikkoctba .gt_fraction_denominator {
+#ozmobnwnca .gt_fraction_denominator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: -0.05em;
@@ -690,8 +657,8 @@ tidy_titanic %>%
   <thead class="gt_col_headings">
     <tr>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Survived</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Sex</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">value</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Male</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Female</th>
     </tr>
   </thead>
   <tbody class="gt_table_body">
@@ -699,61 +666,37 @@ tidy_titanic %>%
       <td colspan="3" class="gt_group_heading">1st</td>
     </tr>
     <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">118</td></tr>
-    <tr><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">118</td>
 <td class="gt_row gt_right">4</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">62</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">62</td>
 <td class="gt_row gt_right">141</td></tr>
     <tr class="gt_group_heading_row">
       <td colspan="3" class="gt_group_heading">2nd</td>
     </tr>
     <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">154</td></tr>
-    <tr><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">154</td>
 <td class="gt_row gt_right">13</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">25</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">25</td>
 <td class="gt_row gt_right">93</td></tr>
     <tr class="gt_group_heading_row">
       <td colspan="3" class="gt_group_heading">3rd</td>
     </tr>
     <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">422</td></tr>
-    <tr><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">422</td>
 <td class="gt_row gt_right">106</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">88</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">88</td>
 <td class="gt_row gt_right">90</td></tr>
     <tr class="gt_group_heading_row">
       <td colspan="3" class="gt_group_heading">Crew</td>
     </tr>
     <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">670</td></tr>
-    <tr><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">670</td>
 <td class="gt_row gt_right">3</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">192</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">192</td>
 <td class="gt_row gt_right">20</td></tr>
   </tbody>
   
@@ -765,17 +708,17 @@ tidy_titanic %>%
 
 ``` r
 tidy_titanic %>% 
-  pivot_count(x = Sex, c(y = Survived, Class, Age)) %>% 
+  pivot_count(cols = Sex, c(rows = Survived, Class, Age)) %>% 
   group_by(Age) %>% 
   gt::gt()
 ```
 
-<div id="msvlomjtbc" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="armmpvivio" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#msvlomjtbc .gt_table {
+#armmpvivio .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -800,7 +743,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#msvlomjtbc .gt_heading {
+#armmpvivio .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -812,7 +755,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#msvlomjtbc .gt_title {
+#armmpvivio .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -824,7 +767,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#msvlomjtbc .gt_subtitle {
+#armmpvivio .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -836,13 +779,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#msvlomjtbc .gt_bottom_border {
+#armmpvivio .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#msvlomjtbc .gt_col_headings {
+#armmpvivio .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -857,7 +800,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#msvlomjtbc .gt_col_heading {
+#armmpvivio .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -877,7 +820,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#msvlomjtbc .gt_column_spanner_outer {
+#armmpvivio .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -889,15 +832,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#msvlomjtbc .gt_column_spanner_outer:first-child {
+#armmpvivio .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#msvlomjtbc .gt_column_spanner_outer:last-child {
+#armmpvivio .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#msvlomjtbc .gt_column_spanner {
+#armmpvivio .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -909,7 +852,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#msvlomjtbc .gt_group_heading {
+#armmpvivio .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -934,7 +877,7 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#msvlomjtbc .gt_empty_group_heading {
+#armmpvivio .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -949,15 +892,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#msvlomjtbc .gt_from_md > :first-child {
+#armmpvivio .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#msvlomjtbc .gt_from_md > :last-child {
+#armmpvivio .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#msvlomjtbc .gt_row {
+#armmpvivio .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -976,7 +919,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#msvlomjtbc .gt_stub {
+#armmpvivio .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -989,7 +932,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#msvlomjtbc .gt_stub_row_group {
+#armmpvivio .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1003,11 +946,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#msvlomjtbc .gt_row_group_first td {
+#armmpvivio .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#msvlomjtbc .gt_summary_row {
+#armmpvivio .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1017,16 +960,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#msvlomjtbc .gt_first_summary_row {
+#armmpvivio .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#msvlomjtbc .gt_first_summary_row.thick {
+#armmpvivio .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#msvlomjtbc .gt_last_summary_row {
+#armmpvivio .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1036,7 +979,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#msvlomjtbc .gt_grand_summary_row {
+#armmpvivio .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1046,7 +989,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#msvlomjtbc .gt_first_grand_summary_row {
+#armmpvivio .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1056,11 +999,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#msvlomjtbc .gt_striped {
+#armmpvivio .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#msvlomjtbc .gt_table_body {
+#armmpvivio .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1069,7 +1012,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#msvlomjtbc .gt_footnotes {
+#armmpvivio .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1083,7 +1026,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#msvlomjtbc .gt_footnote {
+#armmpvivio .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -1092,7 +1035,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#msvlomjtbc .gt_sourcenotes {
+#armmpvivio .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1106,7 +1049,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#msvlomjtbc .gt_sourcenote {
+#armmpvivio .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -1114,60 +1057,60 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#msvlomjtbc .gt_left {
+#armmpvivio .gt_left {
   text-align: left;
 }
 
-#msvlomjtbc .gt_center {
+#armmpvivio .gt_center {
   text-align: center;
 }
 
-#msvlomjtbc .gt_right {
+#armmpvivio .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#msvlomjtbc .gt_font_normal {
+#armmpvivio .gt_font_normal {
   font-weight: normal;
 }
 
-#msvlomjtbc .gt_font_bold {
+#armmpvivio .gt_font_bold {
   font-weight: bold;
 }
 
-#msvlomjtbc .gt_font_italic {
+#armmpvivio .gt_font_italic {
   font-style: italic;
 }
 
-#msvlomjtbc .gt_super {
+#armmpvivio .gt_super {
   font-size: 65%;
 }
 
-#msvlomjtbc .gt_footnote_marks {
+#armmpvivio .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#msvlomjtbc .gt_asterisk {
+#armmpvivio .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#msvlomjtbc .gt_slash_mark {
+#armmpvivio .gt_slash_mark {
   font-size: 0.7em;
   line-height: 0.7em;
   vertical-align: 0.15em;
 }
 
-#msvlomjtbc .gt_fraction_numerator {
+#armmpvivio .gt_fraction_numerator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: 0.45em;
 }
 
-#msvlomjtbc .gt_fraction_denominator {
+#armmpvivio .gt_fraction_denominator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: -0.05em;
@@ -1177,10 +1120,10 @@ tidy_titanic %>%
   
   <thead class="gt_col_headings">
     <tr>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">y</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">rows</th>
       <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Class</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Sex</th>
-      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">value</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Male</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Female</th>
     </tr>
   </thead>
   <tbody class="gt_table_body">
@@ -1189,102 +1132,54 @@ tidy_titanic %>%
     </tr>
     <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
 <td class="gt_row gt_center">1st</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">118</td></tr>
-    <tr><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">1st</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">118</td>
 <td class="gt_row gt_right">4</td></tr>
     <tr><td class="gt_row gt_center">No</td>
 <td class="gt_row gt_center">2nd</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">154</td></tr>
-    <tr><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">2nd</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">154</td>
 <td class="gt_row gt_right">13</td></tr>
     <tr><td class="gt_row gt_center">No</td>
 <td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">387</td></tr>
-    <tr><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">387</td>
 <td class="gt_row gt_right">89</td></tr>
     <tr><td class="gt_row gt_center">No</td>
 <td class="gt_row gt_center">Crew</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">670</td></tr>
-    <tr><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">Crew</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">670</td>
 <td class="gt_row gt_right">3</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
 <td class="gt_row gt_center">1st</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">57</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">1st</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">57</td>
 <td class="gt_row gt_right">140</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
 <td class="gt_row gt_center">2nd</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">14</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">2nd</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">14</td>
 <td class="gt_row gt_right">80</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
 <td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">75</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">75</td>
 <td class="gt_row gt_right">76</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
 <td class="gt_row gt_center">Crew</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">192</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">Crew</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">192</td>
 <td class="gt_row gt_right">20</td></tr>
     <tr class="gt_group_heading_row">
       <td colspan="4" class="gt_group_heading">Child</td>
     </tr>
     <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
 <td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">35</td></tr>
-    <tr><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">35</td>
 <td class="gt_row gt_right">17</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
 <td class="gt_row gt_center">1st</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">5</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">1st</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">5</td>
 <td class="gt_row gt_right">1</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
 <td class="gt_row gt_center">2nd</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">11</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">2nd</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">11</td>
 <td class="gt_row gt_right">13</td></tr>
     <tr><td class="gt_row gt_center">Yes</td>
 <td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">Male</td>
-<td class="gt_row gt_right">13</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_center">Female</td>
+<td class="gt_row gt_right">13</td>
 <td class="gt_row gt_right">14</td></tr>
   </tbody>
   
@@ -1337,26 +1232,32 @@ pivot_prop_script <- readLines("./R/pivot_prop.R")
 #' @export
 #'
 #' @examples
-pivot_prop <- function(data, y, y0, y00, x = NULL, value = NULL, fun = sum, within, within2,  pivot = !is.null(x), percent = T, round = F){
+pivot_prop <- function(data, rows = NULL, cols = NULL,
+                       value = NULL, fun = sum,
+                       within = NULL,  pivot = T,
+                       percent = T, round = F){
 
-  y00 <- enquo(y00)
-  y0 <- enquo(y0)
-  x <- enquo(x)
-  y <- enquo(y)
-  within <- enquo(within)
-  within2 <- enquo(within2)
+  # y00 <- enquo(y00)
+  # y0 <- enquo(y0)
+  # x <- enquo(cols)
+  # y <- enquo(y)
+  # within <- enquo(within)
+  # within2 <- enquo(within2)
+  cols_quo <- enquo(cols)
+  value_quo <- enquo(value)
 
 
-  if(is.null(value)){
+  if(rlang::quo_is_null(value_quo)){
     data <- data %>% dplyr::mutate(value = 1)
   }else{
-    value <- enquo(value)
+    data <- data %>%
+      dplyr::mutate(value = fun({{value}}))
   }
 
   data %>%
-    dplyr::group_by(!!y00, !!y0, !!y, !!x) %>%
+    dplyr::group_by(across(c({{rows}}, {{cols}}))) %>%
     dplyr::summarize(value = fun(value)) %>%
-    dplyr::group_by(!!within, !!within2) %>%
+    dplyr::group_by(across(c({{within}}))) %>%
     dplyr::mutate(prop = (value/sum(value)*ifelse(percent, 100, 1)) %>% round(1)) %>%
     dplyr::select(-value) %>%
     dplyr::ungroup() ->
@@ -1365,7 +1266,7 @@ pivot_prop <- function(data, y, y0, y00, x = NULL, value = NULL, fun = sum, with
   if(pivot){
 
     tidy %>%
-      tidyr::pivot_wider(values_from = prop, names_from = !!x)
+      tidyr::pivot_wider(values_from = prop, names_from = {{cols}})
 
   }else{
 
@@ -1379,7 +1280,7 @@ pivot_prop <- function(data, y, y0, y00, x = NULL, value = NULL, fun = sum, with
 
 ``` r
 tidy_titanic %>% 
-  pivot_prop(y = Survived, x = Class, within = Class)
+  pivot_prop(rows = Survived, cols = Class, within = Class)
 #> # A tibble: 2 × 5
 #>   Survived `1st` `2nd` `3rd`  Crew
 #>   <fct>    <dbl> <dbl> <dbl> <dbl>
@@ -1387,9 +1288,8 @@ tidy_titanic %>%
 #> 2 Yes       62.5  41.4  25.2    24
 
 tidy_titanic %>% 
-  pivot_prop(y0 = Survived, 
-               y = Sex, 
-               x = Class, 
+  pivot_prop(rows = c(Survived, Sex), 
+               cols = Class, 
                within = Survived)
 #> # A tibble: 4 × 6
 #>   Survived Sex    `1st` `2nd` `3rd`  Crew
@@ -1400,11 +1300,9 @@ tidy_titanic %>%
 #> 4 Yes      Female  19.8  13.1  12.7   2.8
 
 tidy_titanic %>% 
-  pivot_prop(y0 = Survived, 
-               y = Sex, 
-               x = Class, 
-               within = Survived,
-               within2 = Sex)
+  pivot_prop(rows = c(Survived, Sex), 
+               cols = Class, 
+               within = c(Survived, Sex))
 #> # A tibble: 4 × 6
 #>   Survived Sex    `1st` `2nd` `3rd`  Crew
 #>   <fct>    <fct>  <dbl> <dbl> <dbl> <dbl>
@@ -1416,9 +1314,8 @@ tidy_titanic %>%
 
 ``` r
 tidy_titanic %>% 
-  pivot_prop(y0 = Survived, 
-               y = Sex, 
-               x = Class, 
+  pivot_prop(rows = c(Survived, Sex), 
+               cols = Class, 
                within = Survived, pivot = F) %>% 
   ggplot() +
   aes(x = Class, y = Sex) +
@@ -1432,11 +1329,9 @@ tidy_titanic %>%
 
 ``` r
 tidy_titanic %>% 
-  pivot_prop(y0 = Survived, 
-               y = Sex, 
-               x = Class, 
-               within = Survived, 
-               within2 = Sex, pivot = F) %>% 
+  pivot_prop(rows = c(Survived, Sex), 
+               cols = Class, 
+               within = c(Survived, Sex), pivot = F) %>% 
   ggplot() +
   aes(x = Class, y = 1) +
   facet_grid(rows = vars(Survived, Sex)) +
