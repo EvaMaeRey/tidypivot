@@ -150,7 +150,7 @@ tidy_titanic %>%
 
 ```{r style2}
 tidy_titanic %>% 
-  pivot_count(cols = Sex, c(rows = Survived, Class, Age)) %>% 
+  pivot_count(cols = Sex, rows = c(Survived, Class, Age)) %>% 
   group_by(Age) %>% 
   gt::gt()
 ```

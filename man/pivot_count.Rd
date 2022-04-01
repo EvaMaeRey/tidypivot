@@ -2,16 +2,16 @@
 % Please edit documentation in R/pivot_count.R
 \name{pivot_count}
 \alias{pivot_count}
-\title{Title}
+\title{library(tidyverse)
+library(magrittr)
+create_tidy_titanic() \%>\%
+pivot_count(Sex, Survived)}
 \usage{
-pivot_count(data, rows = NULL, cols = NULL, value = NULL, fun = sum, pivot = T)
-}
-\arguments{
-\item{pivot}{}
-}
-\value{
-
+pivot_count(data, cols = NULL, rows = NULL, pivot = T)
 }
 \description{
-Title
+library(tidyverse)
+library(magrittr)
+create_tidy_titanic() \%>\%
+pivot_count(Sex, Survived)
 }

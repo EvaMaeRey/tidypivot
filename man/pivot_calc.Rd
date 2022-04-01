@@ -4,7 +4,7 @@
 \alias{pivot_calc}
 \title{Title}
 \usage{
-pivot_calc(data, rows = NULL, cols = NULL, value, fun = sum, pivot = T)
+pivot_calc(data, rows = NULL, cols = NULL, value = NULL, fun = sum, pivot = T)
 }
 \arguments{
 \item{pivot}{}

@@ -6,15 +6,12 @@
 \usage{
 pivot_prop(
   data,
-  y,
-  y0,
-  y00,
+  rows = NULL,
   cols = NULL,
   value = NULL,
   fun = sum,
-  within,
-  within2,
-  pivot = !is.null(x),
+  within = NULL,
+  pivot = T,
   percent = T,
   round = F
 )

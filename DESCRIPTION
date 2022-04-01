@@ -1,13 +1,13 @@
 Package: tidypivot
-Title: What the Package Does (One Line, Title Case)
+Title: Tidy table calculations with visual api
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           familrows = "Last",
+    person(given = "Evangeline",
+           family = "Reynolds",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
+           email = "evangeline.mae@gmail.com",
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+Description: Visual api for table calculations. Tables are tidy.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
