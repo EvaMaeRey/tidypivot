@@ -2,15 +2,20 @@
 % Please edit documentation in R/pivot_count.R
 \name{pivot_count}
 \alias{pivot_count}
-\title{library(tidyverse)
-library(magrittr)
-create_tidy_titanic() \%>\%
-pivot_count(Sex, Survived)}
+\title{Title}
 \usage{
 pivot_count(data, cols = NULL, rows = NULL, pivot = T)
 }
+\arguments{
+\item{pivot}{}
+}
+\value{
+
+}
 \description{
-library(tidyverse)
+Title
+}
+\examples{
 library(magrittr)
 create_tidy_titanic() \%>\%
 pivot_count(Sex, Survived)

@@ -22,7 +22,7 @@ pivot_calc <- function(data, rows = NULL, cols = NULL,
 #   value <- enquo(value)
 
   tidy <- data %>%
-    dplyr::group_by(across(c({{rows}}, {{cols}}))) %>%
+    dplyr::group_by(across(c({{rows}}, {{cols}})), .drop = FALSE) %>%
     dplyr::summarize(value = fun({{value}})) %>%
     dplyr::ungroup()
 

@@ -40,7 +40,7 @@ pivot_prop <- function(data, rows = NULL, cols = NULL,
   }
 
   data %>%
-    dplyr::group_by(across(c({{rows}}, {{cols}}))) %>%
+    dplyr::group_by(across(c({{rows}}, {{cols}})), .drop = FALSE) %>%
     dplyr::summarize(value = fun(value)) %>%
     dplyr::group_by(across(c({{within}}))) %>%
     dplyr::mutate(prop = (value/sum(value)*ifelse(percent, 100, 1)) %>% round(1)) %>%
