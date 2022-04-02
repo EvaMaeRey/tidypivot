@@ -4,7 +4,7 @@
 \alias{pivot_count}
 \title{Title}
 \usage{
-pivot_count(data, cols = NULL, rows = NULL, pivot = T)
+pivot_count(data, rows = NULL, cols = NULL, pivot = T)
 }
 \arguments{
 \item{pivot}{}
