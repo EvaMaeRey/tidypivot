@@ -19,4 +19,7 @@ Title
 library(magrittr)
 create_tidy_titanic() \%>\%
 pivot_count(Sex, Survived)
+
+create_tidy_titanic() \%>\%
+pivot_count(c(Sex, Age), c(Class, Survived))
 }
