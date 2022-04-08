@@ -4,7 +4,7 @@
 \alias{pivot_count}
 \title{Title}
 \usage{
-pivot_count(data, rows = NULL, cols = NULL, pivot = T)
+pivot_count(data, cols = NULL, rows = NULL, pivot = T)
 }
 \arguments{
 \item{pivot}{}
@@ -14,12 +14,4 @@ pivot_count(data, rows = NULL, cols = NULL, pivot = T)
 }
 \description{
 Title
-}
-\examples{
-library(magrittr)
-create_tidy_titanic() \%>\%
-pivot_count(Sex, Survived)
-
-create_tidy_titanic() \%>\%
-pivot_count(c(Sex, Age), c(Class, Survived))
 }

@@ -10,7 +10,7 @@ note: see original discussion here:
 and thoughtful contributions from @shannonpileggi and @brshallow
 <https://github.com/EvaMaeRey/mytidytuesday/issues/3>
 
-# Step 00. prep some data, records and flat
+# Step 00. prep some data, records and flat data frame
 
 ``` r
 library(tidyverse)
@@ -97,23 +97,42 @@ pivot_count_script <- readLines("./R/pivot_count.R")
 ```
 
 ``` r
-#' library(tidyverse)
-#' library(magrittr)
-#' create_tidy_titanic() %>%
-#' pivot_count(Sex, Survived)
+#' Title
+#'
+#' @param data
+#' @param cols
+#' @param rows
+#' @param pivot
+#'
+#' @return
+#' @export
+#'
+#' @examples
 pivot_count <- function(data, cols = NULL, rows = NULL, pivot = T){
 
-  cols_quo <- enquo(cols)
+  cols_quo <- rlang::enquo(cols)
 
   tidy <- data %>%
-    group_by(across(c({{rows}}, {{cols}}))) %>%
-    summarize(value = n()) %>%
-    ungroup()
+    dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})), .drop = FALSE) %>%
+    dplyr::summarize(value = dplyr::n()) %>%
+    # tidyr::complete(dplyr::across(c({{cols}}, {{rows}}))) %>%
+    dplyr::mutate(value = tidyr::replace_na(.data$value, 0)) %>%
+    dplyr::arrange(dplyr::across(c({{rows}}, {{cols}}))) %>%
+    dplyr::ungroup()
 
-  if(rlang::quo_is_null(cols_quo) | pivot == F) return(tidy)
+  # do not pivot if argument pivot false or no columns specified
+  if(pivot == F | rlang::quo_is_null(cols_quo)){
+
+    tidy
+
+  # otherwise pivot by columns
+  }else{
 
   tidy %>%
-    pivot_wider(names_from = {{cols}})
+    tidyr::pivot_wider(names_from = {{cols}})
+
+  }
+
 }
 ```
 
@@ -146,7 +165,7 @@ pivot_calc <- function(data, rows = NULL, cols = NULL,
 #   value <- enquo(value)
 
   tidy <- data %>%
-    dplyr::group_by(across(c({{rows}}, {{cols}}))) %>%
+    dplyr::group_by(across(c({{cols}}, {{rows}})), .drop = FALSE) %>%
     dplyr::summarize(value = fun({{value}})) %>%
     dplyr::ungroup()
 
@@ -163,26 +182,38 @@ pivot_calc <- function(data, rows = NULL, cols = NULL,
 # Step 1b. Using those functions
 
 ``` r
+# cols only
 tidy_titanic %>% 
    pivot_count(cols = Sex)
 #> # A tibble: 1 × 2
 #>    Male Female
-#>   <int>  <int>
+#>   <dbl>  <dbl>
 #> 1  1731    470
 
+# rows and cols
 tidy_titanic %>% 
   pivot_count(rows = Survived, cols = Sex) 
 #> # A tibble: 2 × 3
 #>   Survived  Male Female
-#>   <fct>    <int>  <int>
+#>   <fct>    <dbl>  <dbl>
 #> 1 No        1364    126
 #> 2 Yes        367    344
 
+# rows only
+tidy_titanic %>% 
+  pivot_count(rows = Survived) 
+#> # A tibble: 2 × 2
+#>   Survived value
+#>   <fct>    <dbl>
+#> 1 No        1490
+#> 2 Yes        711
+
+# two rows and col
 tidy_titanic %>% 
   pivot_count(rows = c(Survived, Class), cols = Sex)
 #> # A tibble: 8 × 4
 #>   Survived Class  Male Female
-#>   <fct>    <fct> <int>  <int>
+#>   <fct>    <fct> <dbl>  <dbl>
 #> 1 No       1st     118      4
 #> 2 No       2nd     154     13
 #> 3 No       3rd     422    106
@@ -192,13 +223,46 @@ tidy_titanic %>%
 #> 7 Yes      3rd      88     90
 #> 8 Yes      Crew    192     20
 
+# two rows and col and contains zero counts
+tidy_titanic %>% 
+  pivot_count(rows = c(Survived, Class), cols = c(Sex, Age))
+#> # A tibble: 8 × 6
+#>   Survived Class Male_Child Male_Adult Female_Child Female_Adult
+#>   <fct>    <fct>      <dbl>      <dbl>        <dbl>        <dbl>
+#> 1 No       1st            0        118            0            4
+#> 2 No       2nd            0        154            0           13
+#> 3 No       3rd           35        387           17           89
+#> 4 No       Crew           0        670            0            3
+#> 5 Yes      1st            5         57            1          140
+#> 6 Yes      2nd           11         14           13           80
+#> 7 Yes      3rd           13         75           14           76
+#> 8 Yes      Crew           0        192            0           20
+
+# two rows and col and contains zero counts
+tidy_titanic %>% 
+  pivot_count(rows = c(Survived, Class), cols = c(Sex, Age), pivot = F)
+#> # A tibble: 32 × 5
+#>    Sex    Age   Survived Class value
+#>    <fct>  <fct> <fct>    <fct> <dbl>
+#>  1 Male   Child No       1st       0
+#>  2 Male   Adult No       1st     118
+#>  3 Female Child No       1st       0
+#>  4 Female Adult No       1st       4
+#>  5 Male   Child No       2nd       0
+#>  6 Male   Adult No       2nd     154
+#>  7 Female Child No       2nd       0
+#>  8 Female Adult No       2nd      13
+#>  9 Male   Child No       3rd      35
+#> 10 Male   Adult No       3rd     387
+#> # … with 22 more rows
+
 # for fun organize like it will appear visually in code
 tidy_titanic %>% 
   pivot_count(                          cols = Sex, 
               rows = c(Survived, Class)        )
 #> # A tibble: 8 × 4
 #>   Survived Class  Male Female
-#>   <fct>    <fct> <int>  <int>
+#>   <fct>    <fct> <dbl>  <dbl>
 #> 1 No       1st     118      4
 #> 2 No       2nd     154     13
 #> 3 No       3rd     422    106
@@ -209,18 +273,18 @@ tidy_titanic %>%
 #> 8 Yes      Crew    192     20
 ```
 
-## After designing your table you might actually want to have the calculation in long form.
+## After examining your table you might actually want to have the calculation in long form (for use in something like ggplot2). This is what pivot = F is for!
 
 ``` r
 tidy_titanic %>% 
   pivot_count(cols = Sex, rows = Survived, pivot = F)
 #> # A tibble: 4 × 3
-#>   Survived Sex    value
-#>   <fct>    <fct>  <int>
-#> 1 No       Male    1364
-#> 2 No       Female   126
-#> 3 Yes      Male     367
-#> 4 Yes      Female   344
+#>   Sex    Survived value
+#>   <fct>  <fct>    <dbl>
+#> 1 Male   No        1364
+#> 2 Female No         126
+#> 3 Male   Yes        367
+#> 4 Female Yes        344
 ```
 
 ## 1b. pivot\_calc using pivot calc function for non count aggregation
@@ -249,12 +313,12 @@ tidy_titanic %>%
   gt::gt()
 ```
 
-<div id="bajsbmztgn" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="gwjxwjijfp" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#bajsbmztgn .gt_table {
+#gwjxwjijfp .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -279,7 +343,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#bajsbmztgn .gt_heading {
+#gwjxwjijfp .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -291,7 +355,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#bajsbmztgn .gt_title {
+#gwjxwjijfp .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -303,7 +367,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#bajsbmztgn .gt_subtitle {
+#gwjxwjijfp .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -315,13 +379,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#bajsbmztgn .gt_bottom_border {
+#gwjxwjijfp .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#bajsbmztgn .gt_col_headings {
+#gwjxwjijfp .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -336,7 +400,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#bajsbmztgn .gt_col_heading {
+#gwjxwjijfp .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -356,7 +420,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#bajsbmztgn .gt_column_spanner_outer {
+#gwjxwjijfp .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -368,15 +432,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#bajsbmztgn .gt_column_spanner_outer:first-child {
+#gwjxwjijfp .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#bajsbmztgn .gt_column_spanner_outer:last-child {
+#gwjxwjijfp .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#bajsbmztgn .gt_column_spanner {
+#gwjxwjijfp .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -388,7 +452,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#bajsbmztgn .gt_group_heading {
+#gwjxwjijfp .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -413,7 +477,7 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#bajsbmztgn .gt_empty_group_heading {
+#gwjxwjijfp .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -428,15 +492,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#bajsbmztgn .gt_from_md > :first-child {
+#gwjxwjijfp .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#bajsbmztgn .gt_from_md > :last-child {
+#gwjxwjijfp .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#bajsbmztgn .gt_row {
+#gwjxwjijfp .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -455,7 +519,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#bajsbmztgn .gt_stub {
+#gwjxwjijfp .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -468,7 +532,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#bajsbmztgn .gt_stub_row_group {
+#gwjxwjijfp .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -482,11 +546,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#bajsbmztgn .gt_row_group_first td {
+#gwjxwjijfp .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#bajsbmztgn .gt_summary_row {
+#gwjxwjijfp .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -496,16 +560,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#bajsbmztgn .gt_first_summary_row {
+#gwjxwjijfp .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#bajsbmztgn .gt_first_summary_row.thick {
+#gwjxwjijfp .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#bajsbmztgn .gt_last_summary_row {
+#gwjxwjijfp .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -515,7 +579,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#bajsbmztgn .gt_grand_summary_row {
+#gwjxwjijfp .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -525,7 +589,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#bajsbmztgn .gt_first_grand_summary_row {
+#gwjxwjijfp .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -535,11 +599,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#bajsbmztgn .gt_striped {
+#gwjxwjijfp .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#bajsbmztgn .gt_table_body {
+#gwjxwjijfp .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -548,7 +612,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#bajsbmztgn .gt_footnotes {
+#gwjxwjijfp .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -562,7 +626,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#bajsbmztgn .gt_footnote {
+#gwjxwjijfp .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -571,7 +635,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#bajsbmztgn .gt_sourcenotes {
+#gwjxwjijfp .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -585,7 +649,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#bajsbmztgn .gt_sourcenote {
+#gwjxwjijfp .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -593,60 +657,60 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#bajsbmztgn .gt_left {
+#gwjxwjijfp .gt_left {
   text-align: left;
 }
 
-#bajsbmztgn .gt_center {
+#gwjxwjijfp .gt_center {
   text-align: center;
 }
 
-#bajsbmztgn .gt_right {
+#gwjxwjijfp .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#bajsbmztgn .gt_font_normal {
+#gwjxwjijfp .gt_font_normal {
   font-weight: normal;
 }
 
-#bajsbmztgn .gt_font_bold {
+#gwjxwjijfp .gt_font_bold {
   font-weight: bold;
 }
 
-#bajsbmztgn .gt_font_italic {
+#gwjxwjijfp .gt_font_italic {
   font-style: italic;
 }
 
-#bajsbmztgn .gt_super {
+#gwjxwjijfp .gt_super {
   font-size: 65%;
 }
 
-#bajsbmztgn .gt_footnote_marks {
+#gwjxwjijfp .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#bajsbmztgn .gt_asterisk {
+#gwjxwjijfp .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#bajsbmztgn .gt_slash_mark {
+#gwjxwjijfp .gt_slash_mark {
   font-size: 0.7em;
   line-height: 0.7em;
   vertical-align: 0.15em;
 }
 
-#bajsbmztgn .gt_fraction_numerator {
+#gwjxwjijfp .gt_fraction_numerator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: 0.45em;
 }
 
-#bajsbmztgn .gt_fraction_denominator {
+#gwjxwjijfp .gt_fraction_denominator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: -0.05em;
@@ -713,12 +777,12 @@ tidy_titanic %>%
   gt::gt()
 ```
 
-<div id="dmznrxdsox" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="fhqiccgvin" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#dmznrxdsox .gt_table {
+#fhqiccgvin .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -743,7 +807,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#dmznrxdsox .gt_heading {
+#fhqiccgvin .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -755,7 +819,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#dmznrxdsox .gt_title {
+#fhqiccgvin .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -767,7 +831,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#dmznrxdsox .gt_subtitle {
+#fhqiccgvin .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -779,13 +843,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#dmznrxdsox .gt_bottom_border {
+#fhqiccgvin .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#dmznrxdsox .gt_col_headings {
+#fhqiccgvin .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -800,7 +864,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#dmznrxdsox .gt_col_heading {
+#fhqiccgvin .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -820,7 +884,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#dmznrxdsox .gt_column_spanner_outer {
+#fhqiccgvin .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -832,15 +896,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#dmznrxdsox .gt_column_spanner_outer:first-child {
+#fhqiccgvin .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#dmznrxdsox .gt_column_spanner_outer:last-child {
+#fhqiccgvin .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#dmznrxdsox .gt_column_spanner {
+#fhqiccgvin .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -852,7 +916,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#dmznrxdsox .gt_group_heading {
+#fhqiccgvin .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -877,7 +941,7 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#dmznrxdsox .gt_empty_group_heading {
+#fhqiccgvin .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -892,15 +956,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#dmznrxdsox .gt_from_md > :first-child {
+#fhqiccgvin .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#dmznrxdsox .gt_from_md > :last-child {
+#fhqiccgvin .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#dmznrxdsox .gt_row {
+#fhqiccgvin .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -919,7 +983,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#dmznrxdsox .gt_stub {
+#fhqiccgvin .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -932,7 +996,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#dmznrxdsox .gt_stub_row_group {
+#fhqiccgvin .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -946,11 +1010,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#dmznrxdsox .gt_row_group_first td {
+#fhqiccgvin .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#dmznrxdsox .gt_summary_row {
+#fhqiccgvin .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -960,16 +1024,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#dmznrxdsox .gt_first_summary_row {
+#fhqiccgvin .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#dmznrxdsox .gt_first_summary_row.thick {
+#fhqiccgvin .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#dmznrxdsox .gt_last_summary_row {
+#fhqiccgvin .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -979,7 +1043,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#dmznrxdsox .gt_grand_summary_row {
+#fhqiccgvin .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -989,7 +1053,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#dmznrxdsox .gt_first_grand_summary_row {
+#fhqiccgvin .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -999,11 +1063,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#dmznrxdsox .gt_striped {
+#fhqiccgvin .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#dmznrxdsox .gt_table_body {
+#fhqiccgvin .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1012,7 +1076,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#dmznrxdsox .gt_footnotes {
+#fhqiccgvin .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1026,7 +1090,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#dmznrxdsox .gt_footnote {
+#fhqiccgvin .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -1035,7 +1099,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#dmznrxdsox .gt_sourcenotes {
+#fhqiccgvin .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1049,7 +1113,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#dmznrxdsox .gt_sourcenote {
+#fhqiccgvin .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -1057,60 +1121,60 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#dmznrxdsox .gt_left {
+#fhqiccgvin .gt_left {
   text-align: left;
 }
 
-#dmznrxdsox .gt_center {
+#fhqiccgvin .gt_center {
   text-align: center;
 }
 
-#dmznrxdsox .gt_right {
+#fhqiccgvin .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#dmznrxdsox .gt_font_normal {
+#fhqiccgvin .gt_font_normal {
   font-weight: normal;
 }
 
-#dmznrxdsox .gt_font_bold {
+#fhqiccgvin .gt_font_bold {
   font-weight: bold;
 }
 
-#dmznrxdsox .gt_font_italic {
+#fhqiccgvin .gt_font_italic {
   font-style: italic;
 }
 
-#dmznrxdsox .gt_super {
+#fhqiccgvin .gt_super {
   font-size: 65%;
 }
 
-#dmznrxdsox .gt_footnote_marks {
+#fhqiccgvin .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#dmznrxdsox .gt_asterisk {
+#fhqiccgvin .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#dmznrxdsox .gt_slash_mark {
+#fhqiccgvin .gt_slash_mark {
   font-size: 0.7em;
   line-height: 0.7em;
   vertical-align: 0.15em;
 }
 
-#dmznrxdsox .gt_fraction_numerator {
+#fhqiccgvin .gt_fraction_numerator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: 0.45em;
 }
 
-#dmznrxdsox .gt_fraction_denominator {
+#fhqiccgvin .gt_fraction_denominator {
   font-size: 0.6em;
   line-height: 0.6em;
   vertical-align: -0.05em;
@@ -1127,6 +1191,41 @@ tidy_titanic %>%
     </tr>
   </thead>
   <tbody class="gt_table_body">
+    <tr class="gt_group_heading_row">
+      <td colspan="4" class="gt_group_heading">Child</td>
+    </tr>
+    <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">1st</td>
+<td class="gt_row gt_right">0</td>
+<td class="gt_row gt_right">0</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">2nd</td>
+<td class="gt_row gt_right">0</td>
+<td class="gt_row gt_right">0</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">3rd</td>
+<td class="gt_row gt_right">35</td>
+<td class="gt_row gt_right">17</td></tr>
+    <tr><td class="gt_row gt_center">No</td>
+<td class="gt_row gt_center">Crew</td>
+<td class="gt_row gt_right">0</td>
+<td class="gt_row gt_right">0</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">1st</td>
+<td class="gt_row gt_right">5</td>
+<td class="gt_row gt_right">1</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">2nd</td>
+<td class="gt_row gt_right">11</td>
+<td class="gt_row gt_right">13</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">3rd</td>
+<td class="gt_row gt_right">13</td>
+<td class="gt_row gt_right">14</td></tr>
+    <tr><td class="gt_row gt_center">Yes</td>
+<td class="gt_row gt_center">Crew</td>
+<td class="gt_row gt_right">0</td>
+<td class="gt_row gt_right">0</td></tr>
     <tr class="gt_group_heading_row">
       <td colspan="4" class="gt_group_heading">Adult</td>
     </tr>
@@ -1162,25 +1261,6 @@ tidy_titanic %>%
 <td class="gt_row gt_center">Crew</td>
 <td class="gt_row gt_right">192</td>
 <td class="gt_row gt_right">20</td></tr>
-    <tr class="gt_group_heading_row">
-      <td colspan="4" class="gt_group_heading">Child</td>
-    </tr>
-    <tr class="gt_row_group_first"><td class="gt_row gt_center">No</td>
-<td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_right">35</td>
-<td class="gt_row gt_right">17</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">1st</td>
-<td class="gt_row gt_right">5</td>
-<td class="gt_row gt_right">1</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">2nd</td>
-<td class="gt_row gt_right">11</td>
-<td class="gt_row gt_right">13</td></tr>
-    <tr><td class="gt_row gt_center">Yes</td>
-<td class="gt_row gt_center">3rd</td>
-<td class="gt_row gt_right">13</td>
-<td class="gt_row gt_right">14</td></tr>
   </tbody>
   
   
@@ -1255,7 +1335,7 @@ pivot_prop <- function(data, rows = NULL, cols = NULL,
   }
 
   data %>%
-    dplyr::group_by(across(c({{rows}}, {{cols}}))) %>%
+    dplyr::group_by(across(c({{rows}}, {{cols}})), .drop = FALSE) %>%
     dplyr::summarize(value = fun(value)) %>%
     dplyr::group_by(across(c({{within}}))) %>%
     dplyr::mutate(prop = (value/sum(value)*ifelse(percent, 100, 1)) %>% round(1)) %>%
@@ -1354,3 +1434,8 @@ tidy_titanic %>%
     tidy…
 
 <img src="man/figures/README-unnamed-chunk-8-1.png" width="100%" />
+
+# Other work in this space
+
+-   janitor::tably
+-   pivottabler

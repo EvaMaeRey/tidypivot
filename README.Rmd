@@ -20,9 +20,11 @@ knitr::opts_chunk$set(message = F, warning = F)
 library(tidypivot)
 ```
 
+
+
 note: see original discussion here: https://evamaerey.github.io/mytidytuesday/2022-02-14-tables/tables.html and thoughtful contributions from @shannonpileggi and @brshallow https://github.com/EvaMaeRey/mytidytuesday/issues/3
 
-# Step 00. prep some data, records and flat
+# Step 00. prep some data, records and flat data frame
 
 ```{r prep}
 library(tidyverse)
@@ -102,14 +104,29 @@ pivot_calc_script <- readLines("./R/pivot_calc.R")
 # Step 1b. Using those functions
 
 ```{r examples}
+# cols only
 tidy_titanic %>% 
    pivot_count(cols = Sex)
 
+# rows and cols
 tidy_titanic %>% 
   pivot_count(rows = Survived, cols = Sex) 
 
+# rows only
+tidy_titanic %>% 
+  pivot_count(rows = Survived) 
+
+# two rows and col
 tidy_titanic %>% 
   pivot_count(rows = c(Survived, Class), cols = Sex)
+
+# two rows and col and contains zero counts
+tidy_titanic %>% 
+  pivot_count(rows = c(Survived, Class), cols = c(Sex, Age))
+
+# two rows and col and contains zero counts
+tidy_titanic %>% 
+  pivot_count(rows = c(Survived, Class), cols = c(Sex, Age), pivot = F)
 
 # for fun organize like it will appear visually in code
 tidy_titanic %>% 
@@ -118,7 +135,7 @@ tidy_titanic %>%
 ```
 
 
-## After designing your table you might actually want to have the calculation in long form.
+## After examining your table you might actually want to have the calculation in long form (for use in something like ggplot2).  This is what pivot = F is for!
 
 ```{r}
 tidy_titanic %>% 
@@ -146,7 +163,7 @@ tidy_titanic %>%
   gt::gt()
 ```
 
-# 
+#  
 
 ```{r style2}
 tidy_titanic %>% 
@@ -256,3 +273,9 @@ ggcanvas() +
   stamp_polygon(color = "lightslateblue", 
                 alpha = 0, y0 = .25, size = 4)
 ```
+
+
+# Other work in this space
+
+- janitor::tably
+- pivottabler

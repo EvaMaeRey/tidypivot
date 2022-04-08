@@ -9,27 +9,29 @@
 #' @export
 #'
 #' @examples
-#' library(magrittr)
-#' create_tidy_titanic() %>%
-#' pivot_count(Sex, Survived)
-#'
-#' create_tidy_titanic() %>%
-#' pivot_count(c(Sex, Age), c(Class, Survived))
-pivot_count <- function(data, rows = NULL, cols = NULL, pivot = T){
+pivot_count <- function(data, cols = NULL, rows = NULL, pivot = T){
 
   cols_quo <- rlang::enquo(cols)
 
   tidy <- data %>%
-    dplyr::group_by(dplyr::across(c({{rows}}, {{cols}})), .drop = FALSE) %>%
+    dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})), .drop = FALSE) %>%
     dplyr::summarize(value = dplyr::n()) %>%
-    # dplyr::mutate(value = tidyr::replace_na(.data$value, 0)) %>%
-    dplyr::arrange(dplyr::across(c({{cols}}, {{rows}}))) %>%
+    # tidyr::complete(dplyr::across(c({{cols}}, {{rows}}))) %>%
+    dplyr::mutate(value = tidyr::replace_na(.data$value, 0)) %>%
+    dplyr::arrange(dplyr::across(c({{rows}}, {{cols}}))) %>%
     dplyr::ungroup()
 
-  if(rlang::quo_is_null(cols_quo) | pivot == F) return(tidy)
+  # do not pivot if argument pivot false or no columns specified
+  if(pivot == F | rlang::quo_is_null(cols_quo)){
+
+    tidy
+
+  # otherwise pivot by columns
+  }else{
 
   tidy %>%
-    tidyr::pivot_wider(names_from = {{cols}}, values_fill = list(value = 0)) %>%
-    dplyr::arrange(dplyr::across(c({{rows}})))
-}
+    tidyr::pivot_wider(names_from = {{cols}})
 
+  }
+
+}
