@@ -9,17 +9,27 @@
 #' @export
 #'
 #' @examples
-pivot_count <- function(data, cols = NULL, rows = NULL, pivot = T){
+pivot_count <- function(data, cols = NULL, rows = NULL, pivot = T, wt = NULL){
 
   cols_quo <- rlang::enquo(cols)
+  cols_quo <- rlang::enquo(cols)
 
-  tidy <- data %>%
-    dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})), .drop = FALSE) %>%
-    dplyr::summarize(value = dplyr::n()) %>%
+  grouped <- data %>%
+    dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})), .drop = FALSE)
+
+  summarized <- grouped %>%
+    dplyr::summarize(value = dplyr::n())
+
+  arranged <- summarized# %>%
     # tidyr::complete(dplyr::across(c({{cols}}, {{rows}}))) %>%
-    dplyr::mutate(value = tidyr::replace_na(.data$value, 0)) %>%
-    dplyr::arrange(dplyr::across(c({{rows}}, {{cols}}))) %>%
+    # dplyr::mutate(value = tidyr::replace_na(.data$value, 0)) %>%
+    # dplyr::arrange(dplyr::across(c({{rows}}, {{cols}})))
+
+  ungrouped <- arranged %>%
     dplyr::ungroup()
+
+  tidy <- ungrouped
+
 
   # do not pivot if argument pivot false or no columns specified
   if(pivot == F | rlang::quo_is_null(cols_quo)){
@@ -33,5 +43,8 @@ pivot_count <- function(data, cols = NULL, rows = NULL, pivot = T){
     tidyr::pivot_wider(names_from = {{cols}})
 
   }
+
+  # browser()
+
 
 }

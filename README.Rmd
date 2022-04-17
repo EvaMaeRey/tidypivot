@@ -73,8 +73,9 @@ tidy_titanic %>%
 ```{r slow} 
 tidy_titanic %>% 
   group_by(Sex, Survived) %>% 
-  summarize(value = n()) %>% 
-  pivot_wider(names_from = Survived)
+  summarize(count = n()) %>% 
+  pivot_wider(names_from = Survived, 
+              values_from = count)
 ```
 
 ---
@@ -104,13 +105,13 @@ pivot_calc_script <- readLines("./R/pivot_calc.R")
 # Step 1b. Using those functions
 
 ```{r examples}
-# cols only
-tidy_titanic %>% 
-   pivot_count(cols = Sex)
-
 # rows and cols
 tidy_titanic %>% 
   pivot_count(rows = Survived, cols = Sex) 
+
+# cols only
+tidy_titanic %>% 
+   pivot_count(cols = Sex)
 
 # rows only
 tidy_titanic %>% 
@@ -127,6 +128,10 @@ tidy_titanic %>%
 # two rows and col and contains zero counts
 tidy_titanic %>% 
   pivot_count(rows = c(Survived, Class), cols = c(Sex, Age), pivot = F)
+
+# count all
+tidy_titanic %>% 
+   pivot_count()
 
 # for fun organize like it will appear visually in code
 tidy_titanic %>% 
@@ -150,6 +155,10 @@ tidy_titanic %>%
 flat_titanic %>%
   pivot_calc(              cols = Sex, 
              rows = Survived, value = Freq, fun = sum)
+
+flat_titanic %>% 
+  pivot_count(cols = Sex, 
+             rows = Survived, wt = Freq)
 ```
 
 ## 1b style. use another tool to style
@@ -253,22 +262,35 @@ tidy_titanic %>%
 
 ```{r, echo = F}
 library(ggstamp)
-
+set.seed(128790)
 ggcanvas() + 
+  stamp_tile(x = rnorm(500)/2.5, 
+             y= rnorm(500)/2.5, 
+             fill = "darkslateblue",
+             alpha = runif(500, .25, 1),
+             width = rnorm(500)/3,
+             height = rnorm(500)/3, 
+             color = alpha("black", .75)) + 
   stamp_point(size = 8, color = "grey85") + 
   stamp_spoke(angle = pi, size = 1.7, 
               radius = .65, color = "grey85") +
   stamp_point(size = 5, color = "grey85") + 
   stamp_point(size = 3, color = "grey55") + 
-  stamp_spoke(angle = .45, size = 1.7, 
-              radius = .85, color = "grey55") +
+
   stamp_polygon_holes(y0 = .25) + 
   stamp_text(label = "tidy", hjust = 1,
              color = "violetred", 
                vjust = -.2, size = 17) + 
   stamp_text(label = "pivot", hjust = -.1,
+             angle = 0:25, color = "violetred", 
+               vjust = -.2, size = 17, alpha = c(0:25/400)) + 
+  stamp_spoke(angle = .45*0:25/25, size = 1.7, 
+              radius = .85, color = "grey55", alpha = c(0:25/400)) +
+  stamp_spoke(angle = .45, size = 1.7, 
+              radius = .85, color = "grey55") +
+  stamp_text(label = "pivot", hjust = -.1,
              angle = 25, color = "violetred", 
-               vjust = -.2, size = 17) + 
+               vjust = -.2, size = 17) +
   ggstamp::theme_void_fill(fill = "darkslateblue") + 
   stamp_polygon(color = "lightslateblue", 
                 alpha = 0, y0 = .25, size = 4)
