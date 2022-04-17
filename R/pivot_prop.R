@@ -46,7 +46,7 @@ pivot_prop <- function(data, rows = NULL, cols = NULL,
     dplyr::mutate(prop = (value/sum(value)*ifelse(percent, 100, 1)) %>% round(1)) %>%
     dplyr::select(-value) %>%
     dplyr::ungroup() ->
-    tidy
+  tidy
 
   if(pivot){
 

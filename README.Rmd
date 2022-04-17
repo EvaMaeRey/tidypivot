@@ -159,7 +159,10 @@ flat_titanic %>%
 flat_titanic %>% 
   pivot_count(cols = Sex, 
              rows = Survived, wt = Freq)
+
 ```
+
+Issue: For this case, we should probably use pivot_count and allow for a wt argument.
 
 ## 1b style. use another tool to style
 
@@ -172,7 +175,6 @@ tidy_titanic %>%
   gt::gt()
 ```
 
-#  
 
 ```{r style2}
 tidy_titanic %>% 
@@ -252,12 +254,13 @@ tidy_titanic %>%
 
 ```
 
-# Reflections and questions
+# Reflections, questions, issues
 
 1. Does this already exist?
-2. How can API improve? possibly rows = vars(y00, y0, y), cols = vars(x).  and within = vars(?, ?)  This requires more digging into tidy eval.  What about multiple x vars?
-3. How can internals improve?  Also tidy eval is old I think. defaults for missing data. 
-4. What about summary columns, rows.  Column totals, etc.  Maybe not very tidy...
+2. ~~How can API improve? possibly rows = vars(y00, y0, y), cols = vars(x).  and within = vars(?, ?)  This requires more digging into tidy eval.  What about multiple x vars?~~ These changes implemented thanks to Brian and Shannon
+3. ~~How can internals improve?  Also tidy eval is old I think. defaults for missing data.~~ Using new {{}} tidy eval within and across, and rlang::quo_is_null() thanks to Brian
+4. What about summary columns, rows.  Column totals, etc.  Maybe not very tidy... maybe allowed w/ error message.
+5. Ideas about different API - more like ggplot2, where you would specify new dimensions of your table after piping.  Would require function to create non-data frame type object. Not sure about consistency dplyr/tidyr tools.  These just return dataframes/tibble.  I think being consistent with that expectation might be a good thing. Also less challenging to implement.
 
 
 ```{r, echo = F}

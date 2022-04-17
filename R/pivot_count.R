@@ -34,7 +34,8 @@ pivot_count <- function(data, cols = NULL, rows = NULL, pivot = T, wt = NULL){
   # do not pivot if argument pivot false or no columns specified
   if(pivot == F | rlang::quo_is_null(cols_quo)){
 
-    tidy
+    tidy %>%
+      dplyr::rename(count = .data$value)
 
   # otherwise pivot by columns
   }else{
