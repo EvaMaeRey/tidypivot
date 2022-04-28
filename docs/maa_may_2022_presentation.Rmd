@@ -1,0 +1,446 @@
+---
+title: "tidypivot"
+subtitle: "With flipbookr and xaringan"
+author: "You!"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: [default, hygge, ninjutsu]
+    seal: false
+    nature:
+      ratio: 16:9
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+class: inverse, left, bottom
+background-image: url(https://images.unsplash.com/photo-1622754280615-3992b7ab9da8?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=870&q=80)
+background-size: cover
+# .Large.right.top[[{tidypivot}](https://github.com/EvaMaeRey/tidypivot)]
+## .small[A package for declarative group-wise count and compute]
+### .tiny[Dr. Evangeline Reynolds, West Point | 2022-04-26 |Image credit: Chris Robert, Upsplash]
+???
+Title slide
+
+
+```{r, include = F}
+# This is the recommended set up for flipbooks
+# you might think about setting cache to TRUE as you gain practice --- building flipbooks from scratch can be time consuming
+knitr::opts_chunk$set(fig.width = 6, message = FALSE, warning = FALSE, comment = "", cache = T)
+library(flipbookr)
+library(tidyverse)
+theme_set(theme_minimal(base_size = 15))
+```
+
+
+<!-- adjust font size in this css code chunk, currently 80 -->
+
+```{css, eval = TRUE, echo = FALSE}
+.remark-code{line-height: 1.5; font-size: 130%}
+
+@media print {
+  .has-continuation {
+    display: block;
+  }
+}
+
+code.r.hljs.remark-code{
+  position: relative;
+  overflow-x: hidden;
+}
+
+
+code.r.hljs.remark-code:hover{
+  overflow-x:visible;
+  width: 500px;
+  border-style: solid;
+}
+```
+
+
+<!-- # Step 00. prep some data, records and flat data frame -->
+
+```{r prep, include=F}
+library(tidyverse)
+library(magrittr)
+
+Titanic %>% 
+  data.frame() %>% 
+  uncount(weights = Freq) ->
+tidy_titanic ; tidy_titanic %>% head()
+
+Titanic %>% 
+  data.frame() ->
+flat_titanic ; flat_titanic %>% head()
+```
+
+
+
+---
+
+## A superstar of the tidyverse: ggplot2
+
+--
+
+user needs to describe layout of graphic...
+
+
+---
+
+`r chunk_reveal("academic")`
+
+```{r academic, include = F}
+gapminder::gapminder %>% 
+  filter(year == 2002) %>% 
+  ggplot() + 
+  aes(x = gdpPercap/1000) + 
+  aes(y = lifeExp) + 
+  geom_point(size = 4) + 
+  aes(color = continent) + 
+  aes(shape = continent) + 
+  facet_wrap(facets = vars(continent)) + 
+  scale_x_log10() + 
+  labs(x = "GDP Per Cap  $US, Thousands") + 
+  labs(y = "Life Expectancy, years") + 
+  labs(color = NULL, shape = NULL) + 
+  labs(title = "I just described this plot, and it appeared!")
+```
+
+???
+
+
+---
+
+Lots of data science is counting things...
+
+--
+
+You may be asked to produce tables (counts, calculations, proportions/percentages, by group)
+
+--
+
+Less experience in this world...
+
+---
+
+
+`r chunk_reveal("pivot_chart", title = "But a graphic may look like a table")`
+
+```{r pivot_chart, include = F}
+tidy_titanic %>% 
+  ggplot() + 
+  aes(x = Sex, y = Survived) + 
+  geom_jitter() + 
+  geom_count(color = "blue")
+```
+
+---
+
+## But sometimes you may actually not need a graphic, but rather the raw numbers. 
+
+--
+
+I'd start to sweat a little bit... 
+
+--
+
+why so slow!?  
+
+--
+
+wouldn't you like me to build a chart?
+
+--
+
+My colleagues so fast at building tables - excel pivot tables... 
+
+--
+
+And I'm just like, how do I get this done again? 
+
+---
+
+What does getting there look like using the tidyverse tools?
+
+---
+
+`r chunk_reveal("slow", title = "# Contingency table")`
+
+```{r slow, include = F} 
+tidy_titanic %>% 
+  group_by(Sex, Survived) %>% 
+  summarize(count = n()) %>% 
+  pivot_wider(names_from = Survived, 
+              values_from = count)
+```
+
+
+
+---
+
+# Back to Step 0, Observations: use existing tools to calculate *proportions* is many step process
+
+### feels like lots of gymnastics...
+
+---
+
+`r chunk_reveal("proportionslow", title = "# proportions")`
+
+
+```{r proportionslow, include = F}
+tidy_titanic %>% 
+  group_by(Sex, Survived) %>% 
+  summarize(value = n()) %>% 
+  group_by(Sex) %>% 
+  mutate(prop = value/sum(value)) %>% 
+  select(-value) %>% 
+  pivot_wider(values_from = prop, names_from = Sex)
+```
+
+---
+
+## With existing tidyverse tools, description isn't so visual
+
+- specify vars
+- specify aggregation
+- specify visual arrangement (names from?) <- this comes last
+
+---
+
+# can we make a more visual, declarative API?
+
+--
+
+bundle up the pipeline...?
+
+--
+
+## x argument is horizontal elements (columns) and y is vertical elements (rows)
+
+```{r, echo = F}
+pivot_count_script <- readLines("../R/pivot_count.R")
+```
+
+---
+
+
+```{r count, code = pivot_count_script, echo = F}
+
+```
+
+---
+
+```{r, echo = F}
+pivot_calc_script <- readLines("../R/pivot_calc.R")
+```
+
+```{r calc, code = pivot_calc_script, echo = F}
+
+```
+
+---
+
+# Step 1b. Using those functions
+
+`r chunk_reveal("examples")`
+
+```{r examples, include = F}
+# rows and cols
+tidy_titanic %>% 
+  pivot_count(rows = Survived, 
+              cols = Sex) 
+
+# cols only
+tidy_titanic %>% 
+   pivot_count(cols = Sex)
+
+# rows only
+tidy_titanic %>% 
+  pivot_count(rows = Survived) 
+
+# two rows and col
+tidy_titanic %>% 
+  pivot_count(rows = c(Survived, Class), 
+              cols = Sex)
+
+# two rows and col and contains zero counts
+tidy_titanic %>% 
+  pivot_count(
+    rows = c(Survived, Class), 
+    cols = c(Sex, Age)
+    )
+```
+
+---
+
+
+```{r, echo = F}
+pivot_prop_script <- readLines("../R/pivot_prop.R")
+```
+
+
+
+```{r propfunction, code = pivot_prop_script, echo = F}
+
+```
+
+
+```{r propusage}
+tidy_titanic %>% 
+  pivot_prop(rows = Survived, 
+             cols = Class, 
+             within = Class)
+
+tidy_titanic %>% 
+  pivot_prop(rows = c(Survived, Sex), 
+             cols = Class, 
+             within = Survived)
+
+tidy_titanic %>% 
+  pivot_prop(rows = c(Survived, Sex), 
+             cols = Class, 
+             within = c(Survived,
+                        Sex))
+```
+
+
+
+
+
+---
+
+# Reflections, questions, issues
+
+1. Does this already exist?
+2. ~~How can API improve? possibly rows = vars(y00, y0, y), cols = vars(x).  and within = vars(?, ?)  This requires more digging into tidy eval.  What about multiple x vars?~~ These changes implemented thanks to Brian and Shannon
+3. ~~How can internals improve?  Also tidy eval is old I think. defaults for missing data.~~ Using new {{}} tidy eval within and across, and rlang::quo_is_null() thanks to Brian
+4. What about summary columns, rows.  Column totals, etc.  Maybe not very tidy... maybe allowed w/ error message.
+5. Ideas about different API - more like ggplot2, where you would specify new dimensions of your table after piping.  Would require function to create non-data frame type object. Not sure about consistency dplyr/tidyr tools.  These just return dataframes/tibble.  I think being consistent with that expectation might be a good thing. Also less challenging to implement.
+
+
+
+---
+
+# Other work in this space
+
+- janitor::tably
+- pivottabler
+
+---
+
+# janitor::tably
+
+
+```{r}
+tidy_titanic %>% 
+  janitor::tabyl(Sex, Survived) %>% 
+  janitor::adorn_percentages("row") %>%
+  janitor::adorn_pct_formatting(digits = 2) %>%
+  janitor::adorn_ns() ->
+t1
+
+tidy_titanic %>% 
+  janitor::tabyl(Sex, Survived, Class)
+
+```
+
+## 1b style. use another tool to style
+
+### goal of functions is not to style - just to make calculation faster by using a visually driven API
+
+```{r style}
+tidy_titanic %>%  
+  pivot_count(cols = Sex, rows = c(Survived, Class)) %>% 
+  group_by(Class) %>% 
+  gt::gt()
+```
+
+
+```{r style2}
+tidy_titanic %>% 
+  pivot_count(cols = Sex, rows = c(Survived, Class, Age)) %>% 
+  group_by(Age) %>% 
+  gt::gt()
+```
+
+
+
+---
+
+## After examining your table you might actually want to have the calculation in long form (for use in something like ggplot2).  This is what pivot = F is for!
+
+```{r}
+tidy_titanic %>% 
+  pivot_count(cols = Sex, rows = Survived, pivot = F)
+```
+
+
+
+---
+
+```{r propgraph}
+tidy_titanic %>% 
+  pivot_prop(rows = c(Survived, Sex), 
+               cols = Class, 
+               within = Survived, pivot = F) %>% 
+  ggplot() +
+  aes(x = Class, y = Sex) +
+  facet_grid(rows = vars(Survived)) +
+  geom_tile() +
+  aes(fill = prop) + 
+  geom_text(aes(label = prop %>% round(3)))
+```
+
+```{r propgraph2}
+tidy_titanic %>% 
+  pivot_prop(rows = c(Survived, Sex), 
+               cols = Class, 
+               within = c(Survived, Sex), pivot = F) %>% 
+  ggplot() +
+  aes(x = Class, y = 1) +
+  facet_grid(rows = vars(Survived, Sex)) +
+  geom_tile() +
+  aes(fill = prop) + 
+  geom_text(aes(label = prop %>% round(3)))
+
+```
+
+
+---
+
+```{r, echo = F}
+library(ggstamp)
+set.seed(128790)
+ggcanvas() + 
+  stamp_tile(x = rnorm(500)/2.5, 
+             y= rnorm(500)/2.5, 
+             fill = "darkslateblue",
+             alpha = runif(500, .25, 1),
+             width = rnorm(500)/3,
+             height = rnorm(500)/3, 
+             color = alpha("black", .75)) + 
+  stamp_point(size = 8, color = "grey85") + 
+  stamp_spoke(angle = pi, size = 1.7, 
+              radius = .65, color = "grey85") +
+  stamp_point(size = 5, color = "grey85") + 
+  stamp_point(size = 3, color = "grey55") + 
+
+  stamp_polygon_holes(y0 = .25) + 
+  stamp_text(label = "tidy", hjust = 1,
+             color = "violetred", 
+               vjust = -.2, size = 17) + 
+  stamp_text(label = "pivot", hjust = -.1,
+             angle = 0:25, color = "violetred", 
+               vjust = -.2, size = 17, alpha = c(0:25/400)) + 
+  stamp_spoke(angle = .45*0:25/25, size = 1.7, 
+              radius = .85, color = "grey55", alpha = c(0:25/400)) +
+  stamp_spoke(angle = .45, size = 1.7, 
+              radius = .85, color = "grey55") +
+  stamp_text(label = "pivot", hjust = -.1,
+             angle = 25, color = "violetred", 
+               vjust = -.2, size = 17) +
+  ggstamp::theme_void_fill(fill = "darkslateblue") + 
+  stamp_polygon(color = "lightslateblue", 
+                alpha = 0, y0 = .25, size = 4)
+```
