@@ -218,6 +218,10 @@ bundle up the pipeline...?
 
 ## x argument is horizontal elements (columns) and y is vertical elements (rows)
 
+--
+
+## pivot_count(), pivot_calc(), pivot_prop()
+
 ```{r, echo = F}
 pivot_count_script <- readLines("../R/pivot_count.R")
 ```
@@ -241,7 +245,6 @@ pivot_calc_script <- readLines("../R/pivot_calc.R")
 
 ---
 
-# Step 1b. Using those functions
 
 `r chunk_reveal("examples")`
 
@@ -331,8 +334,9 @@ tidy_titanic %>%
 
 # janitor::tably
 
+`r chunk_reveal("janitor", title = "## janitor::tabyl is great")`
 
-```{r}
+```{r janitor, include=F}
 tidy_titanic %>% 
   janitor::tabyl(Sex, Survived) %>% 
   janitor::adorn_percentages("row") %>%
@@ -341,9 +345,30 @@ tidy_titanic %>%
 t1
 
 tidy_titanic %>% 
-  janitor::tabyl(Sex, Survived, Class)
+  janitor::tabyl(Sex, 
+                 Survived, 
+                 Class)
 
 ```
+---
+
+## The answer is janitor::tabyl()
+
+--
+
+but it's not 'flat file'... 
+
+--
+
+doesn't return a data frame, so maybe not totally tidy
+
+--
+
+only 3 way
+
+
+
+---
 
 ## 1b style. use another tool to style
 
@@ -406,8 +431,30 @@ tidy_titanic %>%
 
 ```
 
+---
+
+# 'pivot tables' fits nicely into the grammar of graphics framework 
+
+--
+
+## we might want tabular output rather than a rendered chart
+
+--
+
+## if it's 'tidy' this output should probably just be a dataframe/tibble
 
 ---
+
+## Note: Tableau point of entry is actually tables! 
+
+--
+
+## and horizontal and vertical axes are declared as 'columns' and 'row' respectively (instead of y and x)
+
+
+---
+
+### Very big thanks to contributors Brian Shalloway and Shannon Pileggi!  And Hadley Wickham and tidyverse team. Leland Wilkinson for Grammar of Graphics framework.
 
 ```{r, echo = F}
 library(ggstamp)
