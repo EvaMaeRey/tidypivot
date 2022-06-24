@@ -1,4 +1,4 @@
-#' Title
+#' A function that pretty much let's you do anything in the tidypivot space, is carefully crafted, and is adapted to make the other functions easy to use
 #'
 #' @inheritParams pivot_count
 #'
@@ -6,16 +6,21 @@
 #' @export
 #'
 #' @examples
-#' flat_titanic %>% pivot_calc(rows = sex, value = freq)
+#' flat_titanic %>% pivot_helper(rows = sex, value = freq)
 #' flat_titanic %>% pivot_calc(rows = sex, fun = mean, value = freq)
-pivot_calc <- function(data, rows = NULL, cols = NULL,
+pivot_helper <- function(data,
+                       rows = NULL,
+                       cols = NULL,
                        value = NULL,
-                       fun = sum,
+                       wt = NULL,
+                       within = NULL,
+                       fun = NULL,
                        pivot = T
 ){
 
     cols_quo <- rlang::enquo(cols)
     value_quo <- rlang::enquo(value)
+    wt_quo <- rlang::enquo(wt)
 
     grouped <- data %>%
       dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
@@ -23,6 +28,7 @@ pivot_calc <- function(data, rows = NULL, cols = NULL,
 
     if(rlang::quo_is_null(value_quo)){
       summarized <- grouped %>%
+        dplyr::mutate(value = 1) %>%
         dplyr::summarize(value = dplyr::n())
     }else{
       summarized <- grouped %>%

@@ -6,9 +6,13 @@
 #' @export
 #'
 #' @examples
-#' tidy_titanic %>% pivot_prop(rows = sex, cols = survived, within = sex)
-pivot_prop <- function(data, rows = NULL, cols = NULL,
-                       value = NULL, fun = sum,
+#' tidy_titanic %>%
+#'     pivot_frac(rows = survived, cols = sex, within = sex)
+#' tidy_titanic %>%
+#'     pivot_frac(rows = survived, cols = c(sex, age), within = c(sex, age))
+
+pivot_frac <- function(data, rows = NULL, cols = NULL,
+                       value = NULL,
                        within = NULL,  pivot = T,
                        percent = T, round = F){
 
@@ -26,7 +30,7 @@ pivot_prop <- function(data, rows = NULL, cols = NULL,
     dplyr::group_by(across(c({{rows}}, {{cols}})), .drop = FALSE) %>%
     dplyr::summarize(value = fun(value)) %>%
     dplyr::group_by(across(c({{within}}))) %>%
-    dplyr::mutate(prop = (value/sum(value)*ifelse(percent, 100, 1)) %>% round(1)) %>%
+    dplyr::mutate(prop = paste0(value, "/", sum(value))) %>%
     dplyr::select(-value) %>%
     dplyr::ungroup() ->
   tidy

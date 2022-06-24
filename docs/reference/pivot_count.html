@@ -109,14 +109,26 @@
     <p>Title</p>
     </div>
 
-    <pre class="usage"><span class='fu'>pivot_count</span>(<span class='no'>data</span>, <span class='kw'>cols</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>rows</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>pivot</span> <span class='kw'>=</span> <span class='no'>T</span>)</pre>
+    <pre class="usage"><span class='fu'>pivot_count</span>(<span class='no'>data</span>, <span class='kw'>cols</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>rows</span> <span class='kw'>=</span> <span class='kw'>NULL</span>, <span class='kw'>pivot</span> <span class='kw'>=</span> <span class='no'>T</span>, <span class='kw'>wt</span> <span class='kw'>=</span> <span class='kw'>NULL</span>)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
+      <th>data</th>
+      <td><p>A data frame, data frame extension (e.g. a tibble), or a lazy data frame (e.g. from dbplyr or dtplyr). See Methods, below, for more details.</p></td>
+    </tr>
+    <tr>
+      <th>cols</th>
+      <td><p>a character vector of items</p></td>
+    </tr>
+    <tr>
+      <th>rows</th>
+      <td><p>a character vector of items</p></td>
+    </tr>
+    <tr>
       <th>pivot</th>
-      <td></td>
+      <td><p>logical: should wide table be returned - col categories as columns (TRUE), or left long and tidy (FALSE)?</p></td>
     </tr>
     </table>
 
@@ -126,12 +138,68 @@
 
 
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='no'>tidy_titanic</span> <span class='kw'>%&gt;%</span> <span class='fu'>pivot_count</span>(<span class='kw'>rows</span> <span class='kw'>=</span> <span class='no'>sex</span>)</div><div class='output co'>#&gt; <span style='color: #949494;'># A tibble: 2 × 2</span>
+#&gt;   sex    count
+#&gt;   <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span>  <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>
+#&gt; <span style='color: #BCBCBC;'>1</span> Male    <span style='text-decoration: underline;'>1</span>731
+#&gt; <span style='color: #BCBCBC;'>2</span> Female   470</div><div class='input'><span class='no'>tidy_titanic</span> <span class='kw'>%&gt;%</span> <span class='fu'>pivot_count</span>(<span class='kw'>cols</span> <span class='kw'>=</span> <span class='no'>sex</span>)</div><div class='output co'>#&gt; <span style='color: #949494;'># A tibble: 1 × 2</span>
+#&gt;    Male Female
+#&gt;   <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>  <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>
+#&gt; <span style='color: #BCBCBC;'>1</span>  <span style='text-decoration: underline;'>1</span>731    470</div><div class='input'><span class='no'>tidy_titanic</span> <span class='kw'>%&gt;%</span> <span class='fu'>pivot_count</span>(<span class='kw'>rows</span> <span class='kw'>=</span> <span class='no'>survived</span>, <span class='kw'>cols</span> <span class='kw'>=</span> <span class='no'>sex</span>)</div><div class='output co'>#&gt; <span style='color: #949494;'># A tibble: 2 × 3</span>
+#&gt;   survived  Male Female
+#&gt;   <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span>    <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>  <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>
+#&gt; <span style='color: #BCBCBC;'>1</span> No        <span style='text-decoration: underline;'>1</span>364    126
+#&gt; <span style='color: #BCBCBC;'>2</span> Yes        367    344</div><div class='input'><span class='no'>tidy_titanic</span> <span class='kw'>%&gt;%</span> <span class='fu'>pivot_count</span>(<span class='kw'>rows</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='no'>survived</span>, <span class='no'>sex</span>), <span class='kw'>cols</span> <span class='kw'>=</span> <span class='no'>age</span>)</div><div class='output co'>#&gt; <span style='color: #949494;'># A tibble: 4 × 4</span>
+#&gt;   survived sex    Child Adult
+#&gt;   <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span>    <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span>  <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span> <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>
+#&gt; <span style='color: #BCBCBC;'>1</span> No       Male      35  <span style='text-decoration: underline;'>1</span>329
+#&gt; <span style='color: #BCBCBC;'>2</span> No       Female    17   109
+#&gt; <span style='color: #BCBCBC;'>3</span> Yes      Male      29   338
+#&gt; <span style='color: #BCBCBC;'>4</span> Yes      Female    28   316</div><div class='input'><span class='no'>tidy_titanic</span> <span class='kw'>%&gt;%</span> <span class='fu'>pivot_count</span>(<span class='kw'>rows</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='no'>survived</span>), <span class='kw'>cols</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='no'>age</span>, <span class='no'>sex</span>))</div><div class='output co'>#&gt; <span style='color: #949494;'># A tibble: 2 × 5</span>
+#&gt;   survived Child_Male Child_Female Adult_Male Adult_Female
+#&gt;   <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span>         <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>        <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>      <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>        <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>
+#&gt; <span style='color: #BCBCBC;'>1</span> No               35           17       <span style='text-decoration: underline;'>1</span>329          109
+#&gt; <span style='color: #BCBCBC;'>2</span> Yes              29           28        338          316</div><div class='input'><span class='no'>tidy_titanic</span> <span class='kw'>%&gt;%</span> <span class='fu'>pivot_count</span>(<span class='kw'>cols</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='no'>survived</span>), <span class='kw'>rows</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='no'>age</span>, <span class='no'>sex</span>, <span class='no'>class</span>))</div><div class='output co'>#&gt; <span style='color: #949494;'># A tibble: 16 × 5</span>
+#&gt;    age   sex    class    No   Yes
+#&gt;    <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span> <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span>  <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span> <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span> <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>
+#&gt; <span style='color: #BCBCBC;'> 1</span> Child Male   1st       0     5
+#&gt; <span style='color: #BCBCBC;'> 2</span> Child Male   2nd       0    11
+#&gt; <span style='color: #BCBCBC;'> 3</span> Child Male   3rd      35    13
+#&gt; <span style='color: #BCBCBC;'> 4</span> Child Male   Crew      0     0
+#&gt; <span style='color: #BCBCBC;'> 5</span> Child Female 1st       0     1
+#&gt; <span style='color: #BCBCBC;'> 6</span> Child Female 2nd       0    13
+#&gt; <span style='color: #BCBCBC;'> 7</span> Child Female 3rd      17    14
+#&gt; <span style='color: #BCBCBC;'> 8</span> Child Female Crew      0     0
+#&gt; <span style='color: #BCBCBC;'> 9</span> Adult Male   1st     118    57
+#&gt; <span style='color: #BCBCBC;'>10</span> Adult Male   2nd     154    14
+#&gt; <span style='color: #BCBCBC;'>11</span> Adult Male   3rd     387    75
+#&gt; <span style='color: #BCBCBC;'>12</span> Adult Male   Crew    670   192
+#&gt; <span style='color: #BCBCBC;'>13</span> Adult Female 1st       4   140
+#&gt; <span style='color: #BCBCBC;'>14</span> Adult Female 2nd      13    80
+#&gt; <span style='color: #BCBCBC;'>15</span> Adult Female 3rd      89    76
+#&gt; <span style='color: #BCBCBC;'>16</span> Adult Female Crew      3    20</div><div class='input'><span class='no'>tidy_titanic</span> <span class='kw'>%&gt;%</span> <span class='fu'>pivot_count</span>(<span class='kw'>rows</span> <span class='kw'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span>(<span class='no'>survived</span>, <span class='no'>sex</span>), <span class='kw'>cols</span> <span class='kw'>=</span> <span class='no'>age</span>, <span class='kw'>pivot</span> <span class='kw'>=</span> <span class='no'>F</span>)</div><div class='output co'>#&gt; <span style='color: #949494;'># A tibble: 8 × 4</span>
+#&gt;   age   survived sex    count
+#&gt;   <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span> <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span>    <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span>  <span style='color: #949494; font-style: italic;'>&lt;int&gt;</span>
+#&gt; <span style='color: #BCBCBC;'>1</span> Child No       Male      35
+#&gt; <span style='color: #BCBCBC;'>2</span> Child No       Female    17
+#&gt; <span style='color: #BCBCBC;'>3</span> Child Yes      Male      29
+#&gt; <span style='color: #BCBCBC;'>4</span> Child Yes      Female    28
+#&gt; <span style='color: #BCBCBC;'>5</span> Adult No       Male    <span style='text-decoration: underline;'>1</span>329
+#&gt; <span style='color: #BCBCBC;'>6</span> Adult No       Female   109
+#&gt; <span style='color: #BCBCBC;'>7</span> Adult Yes      Male     338
+#&gt; <span style='color: #BCBCBC;'>8</span> Adult Yes      Female   316</div><div class='input'><span class='no'>flat_titanic</span> <span class='kw'>%&gt;%</span> <span class='fu'>pivot_count</span>(<span class='kw'>rows</span> <span class='kw'>=</span> <span class='no'>sex</span>, <span class='kw'>wt</span> <span class='kw'>=</span> <span class='no'>freq</span>)</div><div class='output co'>#&gt; <span style='color: #949494;'># A tibble: 2 × 2</span>
+#&gt;   sex    count
+#&gt;   <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span>  <span style='color: #949494; font-style: italic;'>&lt;dbl&gt;</span>
+#&gt; <span style='color: #BCBCBC;'>1</span> Male    <span style='text-decoration: underline;'>1</span>731
+#&gt; <span style='color: #BCBCBC;'>2</span> Female   470</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
       <li><a href="#value">Value</a></li>
+      <li><a href="#examples">Examples</a></li>
     </ul>
 
   </div>

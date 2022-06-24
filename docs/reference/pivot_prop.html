@@ -125,8 +125,20 @@
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>round</th>
-      <td></td>
+      <th>data</th>
+      <td><p>A data frame, data frame extension (e.g. a tibble), or a lazy data frame (e.g. from dbplyr or dtplyr). See Methods, below, for more details.</p></td>
+    </tr>
+    <tr>
+      <th>rows</th>
+      <td><p>a character vector of items</p></td>
+    </tr>
+    <tr>
+      <th>cols</th>
+      <td><p>a character vector of items</p></td>
+    </tr>
+    <tr>
+      <th>pivot</th>
+      <td><p>logical: should wide table be returned - col categories as columns (TRUE), or left long and tidy (FALSE)?</p></td>
     </tr>
     </table>
 
@@ -136,12 +148,19 @@
 
 
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='no'>tidy_titanic</span> <span class='kw'>%&gt;%</span> <span class='fu'>pivot_prop</span>(<span class='kw'>rows</span> <span class='kw'>=</span> <span class='no'>sex</span>, <span class='kw'>cols</span> <span class='kw'>=</span> <span class='no'>survived</span>, <span class='kw'>within</span> <span class='kw'>=</span> <span class='no'>sex</span>)</div><div class='output co'>#&gt; <span style='color: #949494;'># A tibble: 2 × 3</span>
+#&gt;   sex       No   Yes
+#&gt;   <span style='color: #949494; font-style: italic;'>&lt;fct&gt;</span>  <span style='color: #949494; font-style: italic;'>&lt;dbl&gt;</span> <span style='color: #949494; font-style: italic;'>&lt;dbl&gt;</span>
+#&gt; <span style='color: #BCBCBC;'>1</span> Male    78.8  21.2
+#&gt; <span style='color: #BCBCBC;'>2</span> Female  26.8  73.2</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
       <li><a href="#arguments">Arguments</a></li>
       <li><a href="#value">Value</a></li>
+      <li><a href="#examples">Examples</a></li>
     </ul>
 
   </div>

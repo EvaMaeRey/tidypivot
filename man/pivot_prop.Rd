@@ -17,11 +17,20 @@ pivot_prop(
 )
 }
 \arguments{
-\item{round}{}
+\item{data}{A data frame, data frame extension (e.g. a tibble), or a lazy data frame (e.g. from dbplyr or dtplyr). See Methods, below, for more details.}
+
+\item{rows}{a character vector of items}
+
+\item{cols}{a character vector of items}
+
+\item{pivot}{logical: should wide table be returned - col categories as columns (TRUE), or left long and tidy (FALSE)?}
 }
 \value{
 
 }
 \description{
 Title
+}
+\examples{
+tidy_titanic \%>\% pivot_prop(rows = sex, cols = survived, within = sex)
 }
