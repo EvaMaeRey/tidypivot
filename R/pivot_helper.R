@@ -6,8 +6,17 @@
 #' @export
 #'
 #' @examples
-#' flat_titanic %>% pivot_helper(rows = sex, value = freq)
-#' flat_titanic %>% pivot_calc(rows = sex, fun = mean, value = freq)
+#' tidy_titanic %>% pivot_helper(rows = sex, cols = survived, fun = length) # pivot_count
+#' flat_titanic %>% pivot_helper(rows = sex, value = freq, fun = mean) # pivot_calc
+#' flat_titanic %>% pivot_helper(rows = sex, value = freq, fun = sum) # pivot_count (weighted sum)
+#' nar <- function(x) return(NA)
+#' flat_titanic %>% pivot_helper(rows = sex, cols = survived, fun = nar); #pivot_null
+#' sample1 <- function(x) sample(x, 1)
+#' flat_titanic %>% pivot_helper(rows = sex, cols = survived, fun = sample1, value = freq); #pivot_sample1
+#' samplen <- function(x, n) paste(sample(x, 5, replace = F), collapse = ", ")
+#' flat_titanic %>% pivot_helper(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_sample1
+#' paste_collapse <- function(x) paste (x, collapse = ", ")
+#' flat_titanic %>% pivot_helper(rows = sex, fun = paste_collapse, value = freq) #pivot_list
 pivot_helper <- function(data,
                        rows = NULL,
                        cols = NULL,
@@ -15,21 +24,28 @@ pivot_helper <- function(data,
                        wt = NULL,
                        within = NULL,
                        fun = NULL,
-                       pivot = T
+                       pivot = T,
+                       wrap = F
 ){
 
     cols_quo <- rlang::enquo(cols)
     value_quo <- rlang::enquo(value)
     wt_quo <- rlang::enquo(wt)
 
+    if(is.null(fun)){
+    fun <- sum
+    }
+
     grouped <- data %>%
       dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
                       .drop = FALSE)
 
-    if(rlang::quo_is_null(value_quo)){
+    if(rlang::quo_is_null(value_quo) ){
       summarized <- grouped %>%
         dplyr::mutate(value = 1) %>%
-        dplyr::summarize(value = dplyr::n())
+        dplyr::summarise(value = fun(value))
+
+        # dplyr::summarize(value = dplyr::n())
     }else{
       summarized <- grouped %>%
         dplyr::summarise(value = fun({{value}}))
@@ -43,11 +59,13 @@ pivot_helper <- function(data,
 
     tidy <- ungrouped
 
+
     # do not pivot if argument pivot false or if no columns specified
     if(pivot == F | rlang::quo_is_null(cols_quo)){
 
-      tidy %>%
-        dplyr::rename(count = .data$value)
+      tidy
+      # tidy %>%
+      #   dplyr::rename(count = .data$value)
 
       # otherwise pivot by columns
     }else{

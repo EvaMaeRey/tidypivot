@@ -9,7 +9,6 @@ pivot_frac(
   rows = NULL,
   cols = NULL,
   value = NULL,
-  fun = sum,
   within = NULL,
   pivot = T,
   percent = T,
