@@ -14,7 +14,7 @@
 #' sample1 <- function(x) sample(x, 1)
 #' flat_titanic %>% pivot_helper(rows = sex, cols = survived, fun = sample1, value = freq); #pivot_sample1
 #' samplen <- function(x, n) paste(sample(x, 5, replace = F), collapse = ", ")
-#' flat_titanic %>% pivot_helper(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_sample1
+#' flat_titanic %>% pivot_helper(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_samplen
 #' paste_collapse <- function(x) paste (x, collapse = ", ")
 #' flat_titanic %>% pivot_helper(rows = sex, fun = paste_collapse, value = freq) #pivot_list
 pivot_helper <- function(data,
