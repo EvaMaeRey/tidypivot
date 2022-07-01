@@ -304,3 +304,28 @@ ggcanvas() +
 
 - janitor::tably
 - pivottabler
+
+
+---
+
+# And back again...
+
+How to create a scatterplot with a pivot table
+
+```{r}
+library(ggplot2)
+anscombe %>% 
+  ggplot() + 
+  aes(x = rank(x1), y = rank(y1)) + 
+  geom_point() + 
+  scale_y_continuous(breaks = 1:12 -.5) + 
+  scale_x_continuous(breaks = 1:12 -.5) +
+  theme(panel.grid.minor = element_blank())
+# or
+
+anscombe %>% 
+  pivot_count(cols = x1, rows = y1) %>% 
+  dplyr::arrange(-y1) %>% 
+  knitr::kable()
+
+```
