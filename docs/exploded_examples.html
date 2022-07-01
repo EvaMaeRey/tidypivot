@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>tidypivot</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Exploded Examples" />
+    <link href="libs/remark-css-0.0.1/default.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/hygge.css" rel="stylesheet" />
+    <link href="libs/remark-css-0.0.1/ninjutsu.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# tidypivot
+### Exploded Examples
+
+---
+
+
+
+
+
+---
+
+count: false
+ 
+### create_flat_titanic
+.panel1-create_flat_titanic_1-auto[
+
+```r
+*create_flat_titanic()
+```
+]
+ 
+.panel2-create_flat_titanic_1-auto[
+
+```
+   Class    Sex   Age Survived Freq
+1    1st   Male Child       No    0
+2    2nd   Male Child       No    0
+3    3rd   Male Child       No   35
+4   Crew   Male Child       No    0
+5    1st Female Child       No    0
+6    2nd Female Child       No    0
+7    3rd Female Child       No   17
+8   Crew Female Child       No    0
+9    1st   Male Adult       No  118
+10   2nd   Male Adult       No  154
+11   3rd   Male Adult       No  387
+12  Crew   Male Adult       No  670
+13   1st Female Adult       No    4
+14   2nd Female Adult       No   13
+15   3rd Female Adult       No   89
+16  Crew Female Adult       No    3
+17   1st   Male Child      Yes    5
+18   2nd   Male Child      Yes   11
+19   3rd   Male Child      Yes   13
+20  Crew   Male Child      Yes    0
+21   1st Female Child      Yes    1
+22   2nd Female Child      Yes   13
+23   3rd Female Child      Yes   14
+24  Crew Female Child      Yes    0
+25   1st   Male Adult      Yes   57
+26   2nd   Male Adult      Yes   14
+27   3rd   Male Adult      Yes   75
+28  Crew   Male Adult      Yes  192
+29   1st Female Adult      Yes  140
+30   2nd Female Adult      Yes   80
+31   3rd Female Adult      Yes   76
+32  Crew Female Adult      Yes   20
+```
+]
+
+&lt;style&gt;
+.panel1-create_flat_titanic_1-auto {
+  color: black;
+  width: 38.6060606060606%;
+  hight: 32%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+.panel2-create_flat_titanic_1-auto {
+  color: black;
+  width: 59.3939393939394%;
+  hight: 32%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+.panel3-create_flat_titanic_1-auto {
+  color: black;
+  width: NA%;
+  hight: 33%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+&lt;/style&gt;
+
+
+
+
+
+
+
+---
+
+count: false
+ 
+### create_tidy_titanic
+.panel1-create_tidy_titanic_2-auto[
+
+```r
+*create_tidy_titanic()
+```
+]
+ 
+.panel2-create_tidy_titanic_2-auto[
+
+```
+      Class    Sex   Age Survived
+3       3rd   Male Child       No
+3.1     3rd   Male Child       No
+3.2     3rd   Male Child       No
+3.3     3rd   Male Child       No
+3.4     3rd   Male Child       No
+3.5     3rd   Male Child       No
+3.6     3rd   Male Child       No
+3.7     3rd   Male Child       No
+3.8     3rd   Male Child       No
+3.9     3rd   Male Child       No
+3.10    3rd   Male Child       No
+3.11    3rd   Male Child       No
+3.12    3rd   Male Child       No
+3.13    3rd   Male Child       No
+3.14    3rd   Male Child       No
+3.15    3rd   Male Child       No
+3.16    3rd   Male Child       No
+3.17    3rd   Male Child       No
+3.18    3rd   Male Child       No
+3.19    3rd   Male Child       No
+3.20    3rd   Male Child       No
+3.21    3rd   Male Child       No
+3.22    3rd   Male Child       No
+3.23    3rd   Male Child       No
+3.24    3rd   Male Child       No
+3.25    3rd   Male Child       No
+3.26    3rd   Male Child       No
+3.27    3rd   Male Child       No
+3.28    3rd   Male Child       No
+3.29    3rd   Male Child       No
+3.30    3rd   Male Child       No
+3.31    3rd   Male Child       No
+3.32    3rd   Male Child       No
+3.33    3rd   Male Child       No
+3.34    3rd   Male Child       No
+7       3rd Female Child       No
+7.1     3rd Female Child       No
+7.2     3rd Female Child       No
+7.3     3rd Female Child       No
+7.4     3rd Female Child       No
+7.5     3rd Female Child       No
+7.6     3rd Female Child       No
+7.7     3rd Female Child       No
+7.8     3rd Female Child       No
+7.9     3rd Female Child       No
+7.10    3rd Female Child       No
+7.11    3rd Female Child       No
+7.12    3rd Female Child       No
+7.13    3rd Female Child       No
+7.14    3rd Female Child       No
+7.15    3rd Female Child       No
+7.16    3rd Female Child       No
+9       1st   Male Adult       No
+9.1     1st   Male Adult       No
+9.2     1st   Male Adult       No
+9.3     1st   Male Adult       No
+9.4     1st   Male Adult       No
+9.5     1st   Male Adult       No
+9.6     1st   Male Adult       No
+9.7     1st   Male Adult       No
+9.8     1st   Male Adult       No
+9.9     1st   Male Adult       No
+9.10    1st   Male Adult       No
+9.11    1st   Male Adult       No
+9.12    1st   Male Adult       No
+9.13    1st   Male Adult       No
+9.14    1st   Male Adult       No
+9.15    1st   Male Adult       No
+9.16    1st   Male Adult       No
+9.17    1st   Male Adult       No
+9.18    1st   Male Adult       No
+9.19    1st   Male Adult       No
+9.20    1st   Male Adult       No
+9.21    1st   Male Adult       No
+9.22    1st   Male Adult       No
+9.23    1st   Male Adult       No
+9.24    1st   Male Adult       No
+9.25    1st   Male Adult       No
+9.26    1st   Male Adult       No
+9.27    1st   Male Adult       No
+9.28    1st   Male Adult       No
+9.29    1st   Male Adult       No
+9.30    1st   Male Adult       No
+9.31    1st   Male Adult       No
+9.32    1st   Male Adult       No
+9.33    1st   Male Adult       No
+9.34    1st   Male Adult       No
+9.35    1st   Male Adult       No
+9.36    1st   Male Adult       No
+9.37    1st   Male Adult       No
+9.38    1st   Male Adult       No
+9.39    1st   Male Adult       No
+9.40    1st   Male Adult       No
+9.41    1st   Male Adult       No
+9.42    1st   Male Adult       No
+9.43    1st   Male Adult       No
+9.44    1st   Male Adult       No
+9.45    1st   Male Adult       No
+9.46    1st   Male Adult       No
+9.47    1st   Male Adult       No
+9.48    1st   Male Adult       No
+9.49    1st   Male Adult       No
+9.50    1st   Male Adult       No
+9.51    1st   Male Adult       No
+9.52    1st   Male Adult       No
+9.53    1st   Male Adult       No
+9.54    1st   Male Adult       No
+9.55    1st   Male Adult       No
+9.56    1st   Male Adult       No
+9.57    1st   Male Adult       No
+9.58    1st   Male Adult       No
+9.59    1st   Male Adult       No
+9.60    1st   Male Adult       No
+9.61    1st   Male Adult       No
+9.62    1st   Male Adult       No
+9.63    1st   Male Adult       No
+9.64    1st   Male Adult       No
+9.65    1st   Male Adult       No
+9.66    1st   Male Adult       No
+9.67    1st   Male Adult       No
+9.68    1st   Male Adult       No
+9.69    1st   Male Adult       No
+9.70    1st   Male Adult       No
+9.71    1st   Male Adult       No
+9.72    1st   Male Adult       No
+9.73    1st   Male Adult       No
+9.74    1st   Male Adult       No
+9.75    1st   Male Adult       No
+9.76    1st   Male Adult       No
+9.77    1st   Male Adult       No
+9.78    1st   Male Adult       No
+9.79    1st   Male Adult       No
+9.80    1st   Male Adult       No
+9.81    1st   Male Adult       No
+9.82    1st   Male Adult       No
+9.83    1st   Male Adult       No
+9.84    1st   Male Adult       No
+9.85    1st   Male Adult       No
+9.86    1st   Male Adult       No
+9.87    1st   Male Adult       No
+9.88    1st   Male Adult       No
+9.89    1st   Male Adult       No
+9.90    1st   Male Adult       No
+9.91    1st   Male Adult       No
+9.92    1st   Male Adult       No
+9.93    1st   Male Adult       No
+9.94    1st   Male Adult       No
+9.95    1st   Male Adult       No
+9.96    1st   Male Adult       No
+9.97    1st   Male Adult       No
+9.98    1st   Male Adult       No
+9.99    1st   Male Adult       No
+9.100   1st   Male Adult       No
+9.101   1st   Male Adult       No
+9.102   1st   Male Adult       No
+9.103   1st   Male Adult       No
+9.104   1st   Male Adult       No
+9.105   1st   Male Adult       No
+9.106   1st   Male Adult       No
+9.107   1st   Male Adult       No
+9.108   1st   Male Adult       No
+9.109   1st   Male Adult       No
+9.110   1st   Male Adult       No
+9.111   1st   Male Adult       No
+9.112   1st   Male Adult       No
+9.113   1st   Male Adult       No
+9.114   1st   Male Adult       No
+9.115   1st   Male Adult       No
+9.116   1st   Male Adult       No
+9.117   1st   Male Adult       No
+10      2nd   Male Adult       No
+10.1    2nd   Male Adult       No
+10.2    2nd   Male Adult       No
+10.3    2nd   Male Adult       No
+10.4    2nd   Male Adult       No
+10.5    2nd   Male Adult       No
+10.6    2nd   Male Adult       No
+10.7    2nd   Male Adult       No
+10.8    2nd   Male Adult       No
+10.9    2nd   Male Adult       No
+10.10   2nd   Male Adult       No
+10.11   2nd   Male Adult       No
+10.12   2nd   Male Adult       No
+10.13   2nd   Male Adult       No
+10.14   2nd   Male Adult       No
+10.15   2nd   Male Adult       No
+10.16   2nd   Male Adult       No
+10.17   2nd   Male Adult       No
+10.18   2nd   Male Adult       No
+10.19   2nd   Male Adult       No
+10.20   2nd   Male Adult       No
+10.21   2nd   Male Adult       No
+10.22   2nd   Male Adult       No
+10.23   2nd   Male Adult       No
+10.24   2nd   Male Adult       No
+10.25   2nd   Male Adult       No
+10.26   2nd   Male Adult       No
+10.27   2nd   Male Adult       No
+10.28   2nd   Male Adult       No
+10.29   2nd   Male Adult       No
+10.30   2nd   Male Adult       No
+10.31   2nd   Male Adult       No
+10.32   2nd   Male Adult       No
+10.33   2nd   Male Adult       No
+10.34   2nd   Male Adult       No
+10.35   2nd   Male Adult       No
+10.36   2nd   Male Adult       No
+10.37   2nd   Male Adult       No
+10.38   2nd   Male Adult       No
+10.39   2nd   Male Adult       No
+10.40   2nd   Male Adult       No
+10.41   2nd   Male Adult       No
+10.42   2nd   Male Adult       No
+10.43   2nd   Male Adult       No
+10.44   2nd   Male Adult       No
+10.45   2nd   Male Adult       No
+10.46   2nd   Male Adult       No
+10.47   2nd   Male Adult       No
+10.48   2nd   Male Adult       No
+10.49   2nd   Male Adult       No
+10.50   2nd   Male Adult       No
+10.51   2nd   Male Adult       No
+10.52   2nd   Male Adult       No
+10.53   2nd   Male Adult       No
+10.54   2nd   Male Adult       No
+10.55   2nd   Male Adult       No
+10.56   2nd   Male Adult       No
+10.57   2nd   Male Adult       No
+10.58   2nd   Male Adult       No
+10.59   2nd   Male Adult       No
+10.60   2nd   Male Adult       No
+10.61   2nd   Male Adult       No
+10.62   2nd   Male Adult       No
+10.63   2nd   Male Adult       No
+10.64   2nd   Male Adult       No
+10.65   2nd   Male Adult       No
+10.66   2nd   Male Adult       No
+10.67   2nd   Male Adult       No
+10.68   2nd   Male Adult       No
+10.69   2nd   Male Adult       No
+10.70   2nd   Male Adult       No
+10.71   2nd   Male Adult       No
+10.72   2nd   Male Adult       No
+10.73   2nd   Male Adult       No
+10.74   2nd   Male Adult       No
+10.75   2nd   Male Adult       No
+10.76   2nd   Male Adult       No
+10.77   2nd   Male Adult       No
+10.78   2nd   Male Adult       No
+10.79   2nd   Male Adult       No
+ [ reached 'max' / getOption("max.print") -- omitted 1951 rows ]
+```
+]
+
+&lt;style&gt;
+.panel1-create_tidy_titanic_2-auto {
+  color: black;
+  width: 38.6060606060606%;
+  hight: 32%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+.panel2-create_tidy_titanic_2-auto {
+  color: black;
+  width: 59.3939393939394%;
+  hight: 32%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+.panel3-create_tidy_titanic_2-auto {
+  color: black;
+  width: NA%;
+  hight: 33%;
+  float: left;
+  padding-left: 1%;
+  font-size: 80%
+}
+&lt;/style&gt;
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"ratio": "16:9",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

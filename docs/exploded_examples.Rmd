@@ -1,0 +1,41 @@
+---
+title: tidypivot
+subtitle: ""
+author: "Exploded Examples"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: [default, hygge, ninjutsu]
+    nature:
+      ratio: 16:9
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, echo = F}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F, fig.height = 6, comment = "")
+options(knitr.duplicate.label = "allow")
+library(tidypivot)
+```
+
+
+---
+
+`r flipbookr::chunk_reveal('create_flat_titanic_1', title = '### create_flat_titanic')`
+
+```{r create_flat_titanic_1, include = F}
+create_flat_titanic()
+```
+
+
+
+---
+
+`r flipbookr::chunk_reveal('create_tidy_titanic_2', title = '### create_tidy_titanic')`
+
+```{r create_tidy_titanic_2, include = F}
+create_tidy_titanic()
+```
+
+
