@@ -23,6 +23,7 @@ pivot_helper <- function(data,
                        value = NULL,
                        wt = NULL,
                        within = NULL,
+                       withinfun = NULL,
                        fun = NULL,
                        pivot = T,
                        wrap = F
@@ -31,6 +32,7 @@ pivot_helper <- function(data,
     cols_quo <- rlang::enquo(cols)
     value_quo <- rlang::enquo(value)
     wt_quo <- rlang::enquo(wt)
+    within_quo <- rlang::enquo(within)
 
     if(is.null(fun)){
     fun <- sum
@@ -41,18 +43,30 @@ pivot_helper <- function(data,
                       .drop = FALSE)
 
     if(rlang::quo_is_null(value_quo) ){
+
       summarized <- grouped %>%
         dplyr::mutate(value = 1) %>%
         dplyr::summarise(value = fun(value))
 
         # dplyr::summarize(value = dplyr::n())
     }else{
+
       summarized <- grouped %>%
         dplyr::summarise(value = fun({{value}}))
 
     }
 
-    arranged <- summarized
+    if(rlang::quo_is_null(within_quo) ){
+    withined <- summarized
+    }else{
+
+      withined <- summarized %>%
+        dplyr::group_by(dplyr::across(c({{within}})),
+                        .drop = FALSE)
+    }
+
+    arranged <- withined
+
 
     ungrouped <- arranged %>%
       dplyr::ungroup()
