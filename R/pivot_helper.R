@@ -16,23 +16,31 @@
 #' samplen <- function(x, n) paste(sample(x, 5, replace = F), collapse = ", ")
 #' flat_titanic %>% pivot_helper(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_samplen
 #' paste_collapse <- function(x) paste (x, collapse = ", ")
-#' flat_titanic %>% pivot_helper(rows = sex, fun = paste_collapse, value = freq) #pivot_list
+#' flat_titanic %>% pivot_helper(rows = sex, fun = paste_collapse, value = freq) # pivot_list
+#' flat_titanic %>% pivot_helper(rows = sex, value = freq, prop = T) # pivot_prop
+#' flat_titanic %>% pivot_helper(rows = sex, cols = survived, value = freq, prop = T)
+#' flat_titanic %>% pivot_helper(rows = sex, cols = survived, value = freq, prop = T, within = sex)
+#'
+
 pivot_helper <- function(data,
                        rows = NULL,
                        cols = NULL,
                        value = NULL,
                        wt = NULL,
+                       fun = NULL,
+                       prop = F,
                        within = NULL,
                        withinfun = NULL,
-                       fun = NULL,
                        pivot = T,
-                       wrap = F
+                       wrap = F,
+                       totals_within = NULL
 ){
 
     cols_quo <- rlang::enquo(cols)
     value_quo <- rlang::enquo(value)
     wt_quo <- rlang::enquo(wt)
     within_quo <- rlang::enquo(within)
+    totals_within_quo <- rlang::enquo(totals_within)
 
     if(is.null(fun)){
     fun <- sum
@@ -56,17 +64,31 @@ pivot_helper <- function(data,
 
     }
 
-    if(rlang::quo_is_null(within_quo) ){
-    withined <- summarized
+    if(prop == T){
+
+        if(rlang::quo_is_null(within_quo) ){
+
+            withined <- summarized %>%
+              dplyr::ungroup() %>%
+              dplyr::mutate(value = value/sum(value))
+
+            }else{
+
+              withined <- summarized %>%
+                dplyr::ungroup() %>%
+                dplyr::group_by(dplyr::across(c({{within}})),
+                                .drop = FALSE) %>%
+                dplyr::mutate(value = value/sum(value))
+
+            }
+
     }else{
 
-      withined <- summarized %>%
-        dplyr::group_by(dplyr::across(c({{within}})),
-                        .drop = FALSE)
+      withined <- summarized
+
     }
 
     arranged <- withined
-
 
     ungrouped <- arranged %>%
       dplyr::ungroup()
