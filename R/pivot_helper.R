@@ -20,19 +20,17 @@
 #' flat_titanic %>% pivot_helper(rows = sex, value = freq, prop = T) # pivot_prop
 #' flat_titanic %>% pivot_helper(rows = sex, cols = survived, value = freq, prop = T)
 #' flat_titanic %>% pivot_helper(rows = sex, cols = survived, value = freq, prop = T, within = sex)
-#'
-
 pivot_helper <- function(data,
                        rows = NULL,
                        cols = NULL,
                        value = NULL,
                        wt = NULL,
                        fun = NULL,
-                       prop = F,
+                       prop = NULL,
                        within = NULL,
                        withinfun = NULL,
-                       pivot = T,
-                       wrap = F,
+                       pivot = NULL,
+                       wrap = NULL,
                        totals_within = NULL
 ){
 
@@ -41,6 +39,11 @@ pivot_helper <- function(data,
     wt_quo <- rlang::enquo(wt)
     within_quo <- rlang::enquo(within)
     totals_within_quo <- rlang::enquo(totals_within)
+
+    if(is.null(prop)){prop <- FALSE}
+    if(is.null(pivot)){pivot <- TRUE}
+    if(is.null(wrap)){wrap <- FALSE}
+
 
     if(is.null(fun)){
     fun <- sum
