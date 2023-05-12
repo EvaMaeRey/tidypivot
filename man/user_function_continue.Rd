@@ -22,10 +22,8 @@ user_function_continue(
 Title
 }
 \examples{
-library(magrittr)
 user_function_initiate()
   user_function_continue(data = "tidytitanic::tidy_titanic")
   user_function_continue(rows = "sex")
-  user_function_continue(cols = "class") \%>\%
-  dplyr::filter(sex == "Female")
+  user_function_continue(cols = "class")
 }

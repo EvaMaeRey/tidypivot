@@ -141,12 +141,10 @@ user_function_initiate <- function(data = NULL, rows = NULL, cols = NULL,
 #' @export
 #'
 #' @examples
-#' library(magrittr)
 #' user_function_initiate()
 #'   user_function_continue(data = "tidytitanic::tidy_titanic")
 #'   user_function_continue(rows = "sex")
-#'   user_function_continue(cols = "class") %>%
-#'   dplyr::filter(sex == "Female")
+#'   user_function_continue(cols = "class")
 user_function_continue <- function(nothing = NULL, data = NULL, rows = NULL, cols = NULL,
                                    fun = NULL, value = NULL, wt = NULL, pivot_logical = NULL){
 
@@ -172,12 +170,11 @@ user_function_continue <- function(nothing = NULL, data = NULL, rows = NULL, col
 #' @export
 #'
 #' @examples
-#' user_function_initiate()
 #' set_data(data = tidytitanic::tidy_titanic)
 #' set_rows(age)
 set_rows <- function(vars){
 
-  user_function_continue(rows = deparse(substitute(vars)))
+  user_function_continue(nothing, rows = deparse(substitute(vars)))
 
 }
 
@@ -192,13 +189,15 @@ set_rows <- function(vars){
 #' @export
 #'
 #' @examples
-#' user_function_initiate()
-#' set_data(data = tidytitanic::tidy_titanic)
+#' tidytitanic::tidy_titanic |>
+#' set_data()
 #' set_rows(age)
 #' set_cols(survived)
 set_cols <- function(vars){
 
-  user_function_continue(cols = deparse(substitute(vars)))
+  var_names = deparse(substitute(vars))
+
+  user_function_continue(cols = var_names)
 
 }
 
@@ -211,10 +210,10 @@ set_cols <- function(vars){
 #' @export
 #'
 #' @examples
-#' user_function_initiate()
 #' set_data(tidytitanic::tidy_titanic)
 set_data <- function(data){
 
+  user_function_initiate()
   user_function_continue(data = deparse(substitute(data)))
 
 }
@@ -241,3 +240,14 @@ set_data <- function(data){
 # my_function(sex)
 #
 # deparse(substitute(obj))
+
+
+
+# my_function <- function(first, obj) {
+#   deparse(substitute(obj))
+# }
+#
+# my_function(first, second)
+#
+# my_function("hi", second)
+# "hi" %>% my_function(second)

@@ -13,6 +13,5 @@ set_data(data)
 Title
 }
 \examples{
-user_function_initiate()
 set_data(tidytitanic::tidy_titanic)
 }

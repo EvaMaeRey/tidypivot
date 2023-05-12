@@ -13,8 +13,8 @@ set_cols(vars)
 Title
 }
 \examples{
-user_function_initiate()
-set_data(data = tidytitanic::tidy_titanic)
+tidytitanic::tidy_titanic |>
+set_data()
 set_rows(age)
 set_cols(survived)
 }

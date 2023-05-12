@@ -13,7 +13,6 @@ set_rows(vars)
 Title
 }
 \examples{
-user_function_initiate()
 set_data(data = tidytitanic::tidy_titanic)
 set_rows(age)
 }
