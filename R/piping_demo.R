@@ -48,16 +48,16 @@ Tidypivot <- R6::R6Class("Tidypivot",
                          if(!is.null(self$rows)) {self$out <- self$out %>% stringr::str_replace("rows",  self$rows)  }
                          if(!is.null(self$cols)) {self$out <- self$out %>% stringr::str_replace("cols",  self$cols)  }
                          if(!is.null(self$fun))  {self$out <- self$out %>% stringr::str_replace("fun",   self$fun)   }
-                         if(!is.null(self$wt))   {self$out <- self$out %>% stringr::str_replace("wt",    self$wt)    }
                          if(!is.null(self$value)){self$out <- self$out %>% stringr::str_replace("value", self$value) }
+                         if(!is.null(self$wt))   {self$out <- self$out %>% stringr::str_replace("wt",    self$wt)    }
                          if(!is.null(self$pivot)){self$out <- self$out %>% stringr::str_replace("pivot_logical", self$pivot) }
 
                          if(is.null(self$data)) {self$out <- self$out %>% stringr::str_replace("data",  "NULL")}
                          if(is.null(self$rows)) {self$out <- self$out %>% stringr::str_replace("rows",  "NULL")}
                          if(is.null(self$cols)) {self$out <- self$out %>% stringr::str_replace("cols",  "NULL")}
                          if(is.null(self$fun))  {self$out <- self$out %>% stringr::str_replace("fun",   "NULL")}
-                         if(is.null(self$wt))   {self$out <- self$out %>% stringr::str_replace("wt",    "NULL")}
                          if(is.null(self$value)){self$out <- self$out %>% stringr::str_replace("value", "NULL")}
+                         if(is.null(self$wt))   {self$out <- self$out %>% stringr::str_replace("wt",    "NULL")}
                          if(is.null(self$pivot)){self$out <- self$out %>% stringr::str_replace("pivot_logical", "NULL")}
 
                          invisible(self)          #returns
@@ -142,13 +142,12 @@ user_function_initiate <- function(data = NULL, rows = NULL, cols = NULL,
 #'
 #' @examples
 #' library(magrittr)
-#' user_function_initiate() %>%
-#'   user_function_continue(data = "tidytitanic::tidy_titanic") %>%
-#'   user_function_continue(rows = "sex") %>%
-#'   user_function_continue(cols = "survived") %>%
-#'   user_function_continue(cols = "c(survived, class)") %>%
+#' user_function_initiate()
+#'   user_function_continue(data = "tidytitanic::tidy_titanic")
+#'   user_function_continue(rows = "sex")
+#'   user_function_continue(cols = "class") %>%
 #'   dplyr::filter(sex == "Female")
-user_function_continue <- function(nothing, data = NULL, rows = NULL, cols = NULL,
+user_function_continue <- function(nothing = NULL, data = NULL, rows = NULL, cols = NULL,
                                    fun = NULL, value = NULL, wt = NULL, pivot_logical = NULL){
 
   my_tp$update(data,
@@ -162,7 +161,6 @@ user_function_continue <- function(nothing, data = NULL, rows = NULL, cols = NUL
   eval(parse(text =  my_tp$out))
 
 }
-#
 
 #
 #
@@ -174,6 +172,8 @@ user_function_continue <- function(nothing, data = NULL, rows = NULL, cols = NUL
 #' @export
 #'
 #' @examples
+#' user_function_initiate()
+#' set_data(data = tidytitanic::tidy_titanic)
 #' set_rows(age)
 set_rows <- function(vars){
 
@@ -192,7 +192,10 @@ set_rows <- function(vars){
 #' @export
 #'
 #' @examples
-#' set_cols(class)
+#' user_function_initiate()
+#' set_data(data = tidytitanic::tidy_titanic)
+#' set_rows(age)
+#' set_cols(survived)
 set_cols <- function(vars){
 
   user_function_continue(cols = deparse(substitute(vars)))
@@ -208,6 +211,7 @@ set_cols <- function(vars){
 #' @export
 #'
 #' @examples
+#' user_function_initiate()
 #' set_data(tidytitanic::tidy_titanic)
 set_data <- function(data){
 

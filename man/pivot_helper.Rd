@@ -10,10 +10,13 @@ pivot_helper(
   cols = NULL,
   value = NULL,
   wt = NULL,
-  within = NULL,
   fun = NULL,
-  pivot = T,
-  wrap = F
+  prop = NULL,
+  within = NULL,
+  withinfun = NULL,
+  pivot = NULL,
+  wrap = NULL,
+  totals_within = NULL
 )
 }
 \arguments{
@@ -24,9 +27,6 @@ pivot_helper(
 \item{cols}{a character vector of items}
 
 \item{pivot}{logical: should wide table be returned - col categories as columns (TRUE), or left long and tidy (FALSE)?}
-}
-\value{
-
 }
 \description{
 A function that pretty much let's you do anything in the tidypivot space, is carefully crafted, and is adapted to make the other functions easy to use
@@ -40,7 +40,10 @@ flat_titanic \%>\% pivot_helper(rows = sex, cols = survived, fun = nar); #pivot_
 sample1 <- function(x) sample(x, 1)
 flat_titanic \%>\% pivot_helper(rows = sex, cols = survived, fun = sample1, value = freq); #pivot_sample1
 samplen <- function(x, n) paste(sample(x, 5, replace = F), collapse = ", ")
-flat_titanic \%>\% pivot_helper(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_samplen
+# flat_titanic \%>\% pivot_helper(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_samplen
 paste_collapse <- function(x) paste (x, collapse = ", ")
-flat_titanic \%>\% pivot_helper(rows = sex, fun = paste_collapse, value = freq) #pivot_list
+flat_titanic \%>\% pivot_helper(rows = sex, fun = paste_collapse, value = freq) # pivot_list
+flat_titanic \%>\% pivot_helper(rows = sex, value = freq, prop = TRUE) # pivot_prop
+flat_titanic \%>\% pivot_helper(rows = sex, cols = survived, value = freq, prop = TRUE)
+flat_titanic \%>\% pivot_helper(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
 }

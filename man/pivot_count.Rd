@@ -4,7 +4,7 @@
 \alias{pivot_count}
 \title{Title}
 \usage{
-pivot_count(data, cols = NULL, rows = NULL, pivot = T, wt = NULL)
+pivot_count(data, cols = NULL, rows = NULL, pivot = TRUE, wt = NULL)
 }
 \arguments{
 \item{data}{A data frame, data frame extension (e.g. a tibble), or a lazy data frame (e.g. from dbplyr or dtplyr). See Methods, below, for more details.}
@@ -14,9 +14,6 @@ pivot_count(data, cols = NULL, rows = NULL, pivot = T, wt = NULL)
 \item{rows}{a character vector of items}
 
 \item{pivot}{logical: should wide table be returned - col categories as columns (TRUE), or left long and tidy (FALSE)?}
-}
-\value{
-
 }
 \description{
 Title
@@ -28,6 +25,6 @@ tidy_titanic \%>\% pivot_count(rows = survived, cols = sex)
 tidy_titanic \%>\% pivot_count(rows = c(survived, sex), cols = age)
 tidy_titanic \%>\% pivot_count(rows = c(survived), cols = c(age, sex))
 tidy_titanic \%>\% pivot_count(cols = c(survived), rows = c(age, sex, class))
-tidy_titanic \%>\% pivot_count(rows = c(survived, sex), cols = age, pivot = F)
+tidy_titanic \%>\% pivot_count(rows = c(survived, sex), cols = age, pivot = FALSE)
 flat_titanic \%>\% pivot_count(rows = sex, wt = freq)
 }

@@ -15,9 +15,6 @@ pivot_calc(data, rows = NULL, cols = NULL, value = NULL, fun = sum, pivot = T)
 
 \item{pivot}{logical: should wide table be returned - col categories as columns (TRUE), or left long and tidy (FALSE)?}
 }
-\value{
-
-}
 \description{
 Title
 }

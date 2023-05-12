@@ -12,7 +12,8 @@ pivot_frac(
   within = NULL,
   pivot = T,
   percent = T,
-  round = F
+  round = F,
+  fun = sum
 )
 }
 \arguments{
@@ -23,9 +24,6 @@ pivot_frac(
 \item{cols}{a character vector of items}
 
 \item{pivot}{logical: should wide table be returned - col categories as columns (TRUE), or left long and tidy (FALSE)?}
-}
-\value{
-
 }
 \description{
 Title

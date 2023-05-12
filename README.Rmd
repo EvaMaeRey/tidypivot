@@ -16,6 +16,8 @@ knitr::opts_chunk$set(message = F, warning = F)
 
 
 
+
+
 ```{r}
 library(tidypivot)
 ```
@@ -304,6 +306,28 @@ ggcanvas() +
 
 - janitor::tably
 - pivottabler
+
+
+---
+
+# Piping
+
+```{r}
+library(tidypivot)
+
+user_function_initiate()
+   user_function_continue(data = "tidytitanic::tidy_titanic") 
+   user_function_continue(rows = "sex") 
+   user_function_continue(cols = "survived") 
+   user_function_continue(cols = "c(survived, class)")
+
+user_function_initiate() 
+  set_data(tidytitanic::tidy_titanic) 
+  set_rows(sex) 
+  set_cols(survived) 
+  set_cols(c(survived, age))
+
+```
 
 
 ---

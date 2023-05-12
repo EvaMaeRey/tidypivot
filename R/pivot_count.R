@@ -15,10 +15,10 @@
 #' tidy_titanic %>% pivot_count(rows = c(survived, sex), cols = age)
 #' tidy_titanic %>% pivot_count(rows = c(survived), cols = c(age, sex))
 #' tidy_titanic %>% pivot_count(cols = c(survived), rows = c(age, sex, class))
-#' tidy_titanic %>% pivot_count(rows = c(survived, sex), cols = age, pivot = F)
+#' tidy_titanic %>% pivot_count(rows = c(survived, sex), cols = age, pivot = FALSE)
 #' flat_titanic %>% pivot_count(rows = sex, wt = freq)
 pivot_count <- function(data, cols = NULL,
-                        rows = NULL, pivot = T, wt = NULL){
+                        rows = NULL, pivot = TRUE, wt = NULL){
 
   fun <- sum # this will be a variable in pivot_calc
 

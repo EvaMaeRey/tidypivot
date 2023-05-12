@@ -14,7 +14,7 @@
 pivot_frac <- function(data, rows = NULL, cols = NULL,
                        value = NULL,
                        within = NULL,  pivot = T,
-                       percent = T, round = F){
+                       percent = T, round = F, fun = sum){
 
   cols_quo <- rlang::enquo(cols)
   value_quo <- rlang::enquo(value)
