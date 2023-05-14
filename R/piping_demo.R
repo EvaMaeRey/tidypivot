@@ -122,6 +122,7 @@ user_function_initiate <- function(data = NULL, rows = NULL, cols = NULL,
 
   my_tp <<- Tidypivot$new()
 
+  return(my_tp)
 
 }
 #
@@ -156,7 +157,9 @@ user_function_continue <- function(nothing = NULL, data = NULL, rows = NULL, col
                wt,
                pivot_logical)
 
+
   eval(parse(text =  my_tp$out))
+
 
 }
 
@@ -170,11 +173,14 @@ user_function_continue <- function(nothing = NULL, data = NULL, rows = NULL, col
 #' @export
 #'
 #' @examples
-#' set_data(data = tidytitanic::tidy_titanic)
-#' set_rows(age)
-set_rows <- function(vars){
+#' set_data(data = tidytitanic::tidy_titanic) %>%
+#'  set_rows(age)
+set_rows <- function(first, vars){
 
-  user_function_continue(nothing, rows = deparse(substitute(vars)))
+  var_names = deparse(substitute(vars))
+
+  var_names
+  user_function_continue(rows = deparse(substitute(vars)))
 
 }
 
@@ -190,13 +196,15 @@ set_rows <- function(vars){
 #'
 #' @examples
 #' tidytitanic::tidy_titanic |>
-#' set_data()
-#' set_rows(age)
-#' set_cols(survived)
-set_cols <- function(vars){
+#' set_data() |>
+#' set_rows(age) |>
+#' set_cols(survived) |>
+#' set_cols(c(survived, sex))
+set_cols <- function(first, vars){
 
   var_names = deparse(substitute(vars))
 
+  var_names
   user_function_continue(cols = var_names)
 
 }
@@ -211,6 +219,9 @@ set_cols <- function(vars){
 #'
 #' @examples
 #' set_data(tidytitanic::tidy_titanic)
+#'
+#' set_data(tidytitanic::tidy_titanic) |>
+#'  dplyr::slice(1)
 set_data <- function(data){
 
   user_function_initiate()
@@ -221,7 +232,7 @@ set_data <- function(data){
 
 
 
-
+# user_function_initiate()
 
 #
 # user_function_initiate()
@@ -251,3 +262,6 @@ set_data <- function(data){
 #
 # my_function("hi", second)
 # "hi" %>% my_function(second)
+# "hi" %>% my_function(second)
+# cars %>% my_function(second)
+
