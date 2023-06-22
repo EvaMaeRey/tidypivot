@@ -22,20 +22,144 @@ library(tidypivot)
 
 ---
 
-`r flipbookr::chunk_reveal('create_flat_titanic_1', title = '### create_flat_titanic')`
 
-```{r create_flat_titanic_1, include = F}
-create_flat_titanic()
+```{r, eval = F}
+library(tidypivot)
+
+tidytitanic::tidy_titanic
+tp_init(data = "tidytitanic::tidy_titanic")
+   tp_add(rows = "sex") 
+   tp_add(cols = "survived") 
+   tp_add(rows = "c(sex, age)")
 ```
+
+```{css}
+/* custom.css */
+.left-code {
+  color: #777;
+  width: 54%;
+  height: 92%;
+  float: left;
+}
+.right-plot {
+  width: 45%;
+  float: right;
+  padding-left: 1%;
+}
+
+```
+
+---
+
+
+.left-code[
+```{r plot-label, eval=FALSE}
+library(tidypivot)
+
+tidytitanic::tidy_titanic
+```
+]
+
+.right-plot[
+```{r plot-label-out, ref.label="plot-label", echo=FALSE, fig.dim=c(4.8, 4.5), out.width="100%"}
+```
+]
 
 
 
 ---
 
-`r flipbookr::chunk_reveal('create_tidy_titanic_2', title = '### create_tidy_titanic')`
+.left-code[
+```{r plot-label2, eval=FALSE}
+library(tidypivot)
 
-```{r create_tidy_titanic_2, include = F}
-create_tidy_titanic()
+# tidytitanic::tidy_titanic
+tp_init(data = "tidytitanic::tidy_titanic")
+
 ```
+]
+
+.right-plot[
+```{r plot-label-out, ref.label="plot-label2", echo=FALSE, fig.dim=c(4.8, 4.5), out.width="100%"}
+```
+]
+
+---
+
+.left-code[
+```{r plot-label3, eval=FALSE}
+library(tidypivot)
+
+# tidytitanic::tidy_titanic
+tp_init(data = "tidytitanic::tidy_titanic", q = T)
+   tp_add(rows = "sex") 
+
+```
+]
+
+.right-plot[
+```{r plot-label-out, ref.label="plot-label3", echo=FALSE, fig.dim=c(4.8, 4.5), out.width="100%"}
+```
+]
+
+---
+
+.left-code[
+```{r plot-label4, eval=FALSE}
+library(tidypivot)
+
+# tidytitanic::tidy_titanic
+tp_init(data = "tidytitanic::tidy_titanic", q = T)
+   tp_add(rows = "sex", q = T) 
+   tp_add(cols = "survived") 
+```
+]
+
+.right-plot[
+```{r plot-label-out, ref.label="plot-label4", echo=FALSE, fig.dim=c(4.8, 4.5), out.width="100%"}
+```
+]
+
+---
+ 
+.left-code[
+```{r plot-label5, eval=FALSE}
+library(tidypivot)
+
+# tidytitanic::tidy_titanic
+tp_init(data = "tidytitanic::tidy_titanic", q = T)
+   tp_add(rows = "sex", q = T) 
+   tp_add(cols = "survived", q = T) 
+   tp_add(rows = "c(sex, age)")
+```
+]
+
+.right-plot[
+```{r plot-label-out, ref.label="plot-label5", echo=FALSE, fig.dim=c(4.8, 4.5), out.width="100%"}
+```
+]
+
+
+---
+
+class: center, middle, inverse
+
+# Pipe dreams...
+
+
+---
+
+`r flipbookr::chunk_reveal("goals", display_type = "code")`
+
+---
+
+```{r goals, include = T}
+set_data(tidytitanic::tidy_titanic) |>
+  set_cols(survived) |>
+  set_rows(c(sex, age)) |>
+  set_rows(sex)
+```
+
+
 
 

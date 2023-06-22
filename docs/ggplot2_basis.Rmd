@@ -1,0 +1,172 @@
+---
+title: "Untitled"
+author: "Evangeline Reynolds"
+date: "6/21/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+library(tidyverse)
+library(ggplot2)
+
+tidytitanic::tidy_titanic %>% 
+  group_by(sex, age, survived) %>% 
+  count() %>% 
+  ggplot() + 
+  aes(x = "NULL", y = "NULL") + 
+  facet_grid(rows = vars(sex, age), cols = vars(survived)) + 
+  geom_text(aes(label = n)) ->
+my_counting
+
+layer_data(last_plot(), 1)
+my_counting$facet$params
+
+my_counting$facet$params$rows
+
+my_counting$facet$params$cols
+
+```  
+
+```{r}
+
+
+compute_panel_crosstab <- function(data, scales, fun = sum){
+
+    data %>%
+    summarize(label = fun(value)) %>% 
+    mutate(x = 0, y = 0) 
+  
+}
+
+# denominator calculations
+compute_layer_crosstab <- function(data, scales, fun = sum){
+  
+  data %>% 
+    group_by(within_var) %>% 
+    summarize(label = fun(value)) %>% 
+    mutate(x = 0, y = 0) 
+  
+}
+
+
+
+
+tidytitanic::tidy_titanic %>%
+  mutate(value = 1) %>% 
+  compute_panel_crosstab()
+
+tidytitanic::tidy_titanic %>%
+  mutate(value = 1) %>% 
+  compute_panel_crosstab()
+
+tidytitanic::flat_titanic %>% 
+  rename(value = freq) %>% 
+  compute_panel_crosstab()
+
+StatCrosstab <- ggplot2::ggproto(
+  `_class` = "StatCrosstab",
+  `_inherit` = ggplot2::Stat,
+  compute_panel = compute_panel_crosstab
+  )
+
+StatCrosstabDenominator <- ggplot2::ggproto(
+  `_class` = "StatCrosstab",
+  `_inherit` = ggplot2::Stat,
+  compute_layer = compute_layer_crosstab
+  )
+
+geom_text_crosstab <- function(
+  mapping = NULL,
+  data = NULL,
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = TRUE, ...) {
+  ggplot2::layer(
+    stat = StatCrosstab,  # proto object from step 2
+    geom = ggplot2::GeomText,  # inherit other behavior
+    data = data,
+    mapping = mapping,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm, ...)
+  )
+}
+
+ggplot(data = tidytitanic::tidy_titanic) + 
+  facet_grid(rows = vars(sex, age), 
+             cols = vars(survived)) + 
+  aes(value = 1) +
+  geom_text_crosstab() 
+
+
+ggplot(data = tidytitanic::tidy_titanic) + 
+  facet_grid(rows = vars(sex, age), 
+             cols = vars(survived)) + 
+  aes(value = 1) +
+  geom_text_crosstab() 
+
+ggplot(data = tidytitanic::flat_titanic) +
+  facet_grid(rows = vars(sex, age), 
+             cols = vars(survived)) + 
+  aes(value = freq) +
+  geom_text_crosstab() 
+
+
+
+geom_text_crosstab_denominator <- function(
+  mapping = NULL,
+  data = NULL,
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = TRUE, ...) {
+  ggplot2::layer(
+    stat = StatCrosstabDenominator,  # proto object from step 2
+    geom = ggplot2::GeomText,  # inherit other behavior
+    data = data,
+    mapping = mapping,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(na.rm = na.rm, ...)
+  )
+}
+
+
+ggplot(data = tidytitanic::flat_titanic) +
+  facet_grid(rows = vars(sex, age), 
+             cols = vars(survived)) + 
+  aes(value = freq) +
+  geom_text_crosstab() 
+
+
+ggplot(data = tidytitanic::flat_titanic) +
+  facet_grid(rows = vars(sex, age), 
+             cols = vars(survived)) + 
+  aes(value = freq) +
+  aes(within_var = sex) +
+  geom_text_crosstab_denominator() 
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

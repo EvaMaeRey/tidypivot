@@ -315,19 +315,27 @@ ggcanvas() +
 ```{r}
 library(tidypivot)
 
-user_function_initiate()
-   user_function_continue(data = "tidytitanic::tidy_titanic") 
-   user_function_continue(rows = "sex") 
-   user_function_continue(cols = "survived") 
-   user_function_continue(cols = "c(survived, class)")
+tp_init(data = "tidytitanic::tidy_titanic"); str(my_tp)
+   tp_add(rows = "sex"); str(my_tp)
+   tp_add(cols = "survived"); str(my_tp)
+   tp_add(cols = "c(survived, class)"); str(my_tp)
+```
 
+
+```{r}
+tp_init_pipe(data = "tidytitanic::tidy_titanic") |> 
+   tp_add(cols = "class")   ; str(my_tp)
+```   
    
-# user_function_initiate()
-set_data(tidytitanic::tidy_titanic) |>
-  set_rows(sex) |>
-  set_cols(survived) |>
-  set_cols(c(survived, age))
+# Alternate interface?
 
+```{r}
+ls()
+
+set_data(tidytitanic::tidy_titanic) |> 
+   set_rows(sex) |>
+   set_cols(survived) |>
+   set_cols(c(survived, age))
 ```
 
 

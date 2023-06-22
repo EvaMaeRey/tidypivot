@@ -4,7 +4,7 @@
 \alias{set_rows}
 \title{Title}
 \usage{
-set_rows(vars)
+set_rows(first, vars)
 }
 \arguments{
 \item{vars}{}
@@ -13,6 +13,8 @@ set_rows(vars)
 Title
 }
 \examples{
-set_data(data = tidytitanic::tidy_titanic)
-set_rows(age)
+  tp_init(data = "tidytitanic::tidy_titanic")
+
+set_data(data = tidytitanic::tidy_titanic) \%>\%
+ set_rows(age)
 }

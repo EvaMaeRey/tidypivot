@@ -14,4 +14,5 @@ Title
 }
 \examples{
 set_data(tidytitanic::tidy_titanic)
+
 }

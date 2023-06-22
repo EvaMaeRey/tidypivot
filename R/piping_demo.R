@@ -42,7 +42,7 @@ Tidypivot <- R6::R6Class("Tidypivot",
                          if(!is.null(pivot_logical)){self$pivot <- pivot_logical}
 
                          # displaying
-                         self$out <- 'tidypivot::pivot_helper(data, rows, cols, value, wt)'
+                         self$out <- 'tidypivot::pivot_helper(data, rows, cols, fun, value, wt, pivot_logical)'
 
                          if(!is.null(self$data)) {self$out <- self$out %>% stringr::str_replace("data",  self$data)  }
                          if(!is.null(self$rows)) {self$out <- self$out %>% stringr::str_replace("rows",  self$rows)  }
@@ -116,13 +116,37 @@ Tidypivot <- R6::R6Class("Tidypivot",
 #' @export
 #'
 #' @examples
-#' user_function_initiate()
-user_function_initiate <- function(data = NULL, rows = NULL, cols = NULL,
-                          fun = NULL, value = NULL, wt = NULL, pivot_logical = NULL){
+#' tp_init(data = "tidytitanic::tidy_titanic")
+tp_init <- function(data = NULL, quietly = FALSE){
 
+  if(exists("my_tp")){rm(my_tp)}
+
+  # my_tp <- Tidypivot$new()
   my_tp <<- Tidypivot$new()
 
-  return(my_tp)
+
+  my_tp$update(data)
+
+  if(!quietly){
+  eval(parse(text =  my_tp$out))
+  }
+
+}
+
+
+tp_init_pipe <- function(data = NULL, quietly = FALSE){
+
+  # if(exists("my_tp")){rm(my_tp)}
+
+  my_tp_pipe <- Tidypivot$new()
+  # my_tp <<- Tidypivot$new()
+
+
+  my_tp_pipe$update(data)
+
+  if(!quietly){
+    eval(parse(text =  my_tp_pipe$out))
+  }
 
 }
 #
@@ -142,12 +166,19 @@ user_function_initiate <- function(data = NULL, rows = NULL, cols = NULL,
 #' @export
 #'
 #' @examples
-#' user_function_initiate()
-#'   user_function_continue(data = "tidytitanic::tidy_titanic")
-#'   user_function_continue(rows = "sex")
-#'   user_function_continue(cols = "class")
-user_function_continue <- function(nothing = NULL, data = NULL, rows = NULL, cols = NULL,
-                                   fun = NULL, value = NULL, wt = NULL, pivot_logical = NULL){
+#'tp_init(data = "tidytitanic::tidy_titanic")
+#'   tp_add(rows = "sex")
+#'   tp_add(cols = "class")
+#'
+#'tp_init(data = "tidytitanic::tidy_titanic") |>
+#'   tp_add(rows = "sex") |>
+#'   tp_add(cols = "class")
+#'
+tp_add <- function(nothing = NULL, data = NULL, rows = NULL, cols = NULL,
+                                   fun = NULL, value = NULL, wt = NULL,
+                   pivot_logical = NULL, quietly = FALSE){
+
+
 
   my_tp$update(data,
                rows,
@@ -157,9 +188,30 @@ user_function_continue <- function(nothing = NULL, data = NULL, rows = NULL, col
                wt,
                pivot_logical)
 
-
+  if(!quietly){
   eval(parse(text =  my_tp$out))
+  }
 
+}
+
+
+tp_add_pipe <- function(nothing = NULL, data = NULL, rows = NULL, cols = NULL,
+                   fun = NULL, value = NULL, wt = NULL,
+                   pivot_logical = NULL, quietly = FALSE){
+
+
+
+  my_tp_pipe$update(data,
+               rows,
+               cols,
+               fun,
+               value,
+               wt,
+               pivot_logical)
+
+  if(!quietly){
+    eval(parse(text =  my_tp_pipe$out))
+  }
 
 }
 
@@ -173,6 +225,8 @@ user_function_continue <- function(nothing = NULL, data = NULL, rows = NULL, col
 #' @export
 #'
 #' @examples
+#'   tp_init(data = "tidytitanic::tidy_titanic")
+#'
 #' set_data(data = tidytitanic::tidy_titanic) %>%
 #'  set_rows(age)
 set_rows <- function(first, vars){
@@ -180,7 +234,7 @@ set_rows <- function(first, vars){
   var_names = deparse(substitute(vars))
 
   var_names
-  user_function_continue(rows = deparse(substitute(vars)))
+  tp_add(rows = deparse(substitute(vars)))
 
 }
 
@@ -195,17 +249,17 @@ set_rows <- function(first, vars){
 #' @export
 #'
 #' @examples
-#' tidytitanic::tidy_titanic |>
-#' set_data() |>
+#' tp_init(data = "tidytitanic::tidy_titanic")
+#'
+#' set_data(data = tidytitanic::tidy_titanic) |>
 #' set_rows(age) |>
-#' set_cols(survived) |>
 #' set_cols(c(survived, sex))
 set_cols <- function(first, vars){
 
   var_names = deparse(substitute(vars))
 
   var_names
-  user_function_continue(cols = var_names)
+  tp_add(cols = var_names)
 
 }
 
@@ -220,22 +274,34 @@ set_cols <- function(first, vars){
 #' @examples
 #' set_data(tidytitanic::tidy_titanic)
 #'
-#' set_data(tidytitanic::tidy_titanic) |>
-#'  dplyr::slice(1)
 set_data <- function(data){
 
-  user_function_initiate()
-  user_function_continue(data = deparse(substitute(data)))
+  my_tp <<- Tidypivot$new()
+  return(my_tp)
+
+  my_tp$update(data = data,
+               rows,
+               cols,
+               fun,
+               value,
+               wt,
+               pivot_logical)
+
+
+  eval(parse(text =  my_tp$out))
+
+
+  # tp_add(data = deparse(substitute(data)))
 
 }
 
 
 
 
-# user_function_initiate()
+# tp_init()
 
 #
-# user_function_initiate()
+# tp_init()
 
 # rlang::quo_name(sex)
 #

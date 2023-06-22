@@ -1,0 +1,95 @@
+---
+title: "tidypivot"
+subtitle: "With flipbookr and xaringan"
+author: "You!"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: [default, hygge, ninjutsu]
+    seal: false
+    nature:
+      ratio: 16:9
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+class: inverse, left, bottom
+background-image: url(https://images.unsplash.com/photo-1622754280615-3992b7ab9da8?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=870&q=80)
+background-size: cover
+# .Large.right.top[[{tidypivot}](https://github.com/EvaMaeRey/tidypivot)]
+## .small[A package for declarative group-wise count and compute]
+### .tiny[Dr. Evangeline Reynolds, West Point | 2022-04-26 |Image credit: Chris Robert, Upsplash]
+???
+Title slide
+
+
+```{r, include = F}
+# This is the recommended set up for flipbooks
+# you might think about setting cache to TRUE as you gain practice --- building flipbooks from scratch can be time consuming
+knitr::opts_chunk$set(fig.width = 6, message = FALSE, warning = FALSE, comment = "", cache = F)
+library(flipbookr)
+library(tidyverse)
+theme_set(theme_minimal(base_size = 15))
+```
+
+
+<!-- adjust font size in this css code chunk, currently 80 -->
+
+```{css, eval = TRUE, echo = FALSE}
+.remark-code{line-height: 1.5; font-size: 110%}
+
+@media print {
+  .has-continuation {
+    display: block;
+  }
+}
+
+code.r.hljs.remark-code{
+  position: relative;
+  overflow-x: hidden;
+}
+
+
+code.r.hljs.remark-code:hover{
+  overflow-x:visible;
+  width: 500px;
+  border-style: solid;
+}
+```
+
+
+<!-- # Step 00. prep some data, records and flat data frame -->
+
+```{r prep, include=F}
+library(tidyverse)
+library(magrittr)
+library(tidypivot)
+theme_set(theme_gray(base_size = 15))
+
+Titanic %>% 
+  data.frame() %>% 
+  uncount(weights = Freq) ->
+tidy_titanic ; tidy_titanic %>% head()
+
+Titanic %>% 
+  data.frame() ->
+flat_titanic ; flat_titanic %>% head()
+```
+
+---
+
+r chunk_reveal("pipeline")`
+
+```{r pipeline}
+library(tidypivot)
+library(tidyverse)
+
+user_function_initiate()
+set_data(tidytitanic::tidy_titanic) %>% 
+  set_rows(sex) %>% 
+  set_cols(survived) %>% 
+  set_cols(c(survived, age))
+  
+```
+
