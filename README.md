@@ -1,8 +1,185 @@
 
+  - [Internals](#internals)
+  - [Step 00. prep some data, records and flat data
+    frame](#step-00-prep-some-data-records-and-flat-data-frame)
+  - [Step 0. Some observations](#step-0-some-observations)
+      - [ggplot2: user needs to describe layout of
+        table](#ggplot2-user-needs-to-describe-layout-of-table)
+      - [With existing pivot tools, description isn’t so
+        visual](#with-existing-pivot-tools-description-isnt-so-visual)
+  - [Step 1a. Make Functions to allow description of final table,
+    pivot\_count and
+    pivot\_calc](#step-1a-make-functions-to-allow-description-of-final-table-pivot_count-and-pivot_calc)
+      - [x argument is horizontal elements (columns) and y is vertical
+        elements
+        (rows)](#x-argument-is-horizontal-elements-columns-and-y-is-vertical-elements-rows)
+  - [Step 1b. Using those functions](#step-1b-using-those-functions)
+      - [After examining your table you might actually want to have the
+        calculation in long form (for use in something like ggplot2).
+        This is what pivot = F is
+        for\!](#after-examining-your-table-you-might-actually-want-to-have-the-calculation-in-long-form-for-use-in-something-like-ggplot2-this-is-what-pivot--f-is-for)
+      - [1b. pivot\_calc using pivot calc function for non count
+        aggregation](#1b-pivot_calc-using-pivot-calc-function-for-non-count-aggregation)
+          - [just for fun arrange the code how the table will
+            look](#just-for-fun-arrange-the-code-how-the-table-will-look)
+      - [1b style. use another tool to
+        style](#1b-style-use-another-tool-to-style)
+          - [goal of functions is not to style - just to make
+            calculation faster by using a visually driven
+            API](#goal-of-functions-is-not-to-style---just-to-make-calculation-faster-by-using-a-visually-driven-api)
+  - [Back to Step 0, Observations: use existing tools to calculate
+    *proportions* is many step
+    process](#back-to-step-0-observations-use-existing-tools-to-calculate-proportions-is-many-step-process)
+      - [feels like lots of gymnastics… a vis first approach is what we
+        are
+        after](#feels-like-lots-of-gymnastics-a-vis-first-approach-is-what-we-are-after)
+  - [Step 2a. build a function where visual arrangement
+    leads.](#step-2a-build-a-function-where-visual-arrangement-leads)
+  - [Step 2b. using the pivot\_prop](#step-2b-using-the-pivot_prop)
+  - [Reflections, questions, issues](#reflections-questions-issues)
+  - [Other work in this space](#other-work-in-this-space)
+  - [Piping](#piping)
+  - [Alternate interface?](#alternate-interface)
+  - [And back again…](#and-back-again)
+
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 ``` r
+library(tidyverse)
 library(tidypivot)
+options(scipen = 10)
+
+ggplot2::diamonds %>% 
+  pivot_helper(rows = cut, 
+     cols = color)
+#> # A tibble: 5 × 8
+#>   cut           D     E     F     G     H     I     J
+#>   <ord>     <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
+#> 1 Fair        163   224   312   314   303   175   119
+#> 2 Good        662   933   909   871   702   522   307
+#> 3 Very Good  1513  2400  2164  2299  1824  1204   678
+#> 4 Premium    1603  2337  2331  2924  2360  1428   808
+#> 5 Ideal      2834  3903  3826  4884  3115  2093   896
+```
+
+### Internals
+
+``` r
+pivot_helper <- function(data,
+                         
+                       rows = NULL,
+                       cols = NULL,
+                       
+                       value = NULL,
+                       fun = NULL,
+                       wt = NULL,
+                       
+                       prop = FALSE,
+                       percent = FALSE,
+                       round = NULL,
+                       within = NULL,
+                       withinfun = NULL,
+                       
+                       pivot = NULL,
+                       wrap = NULL,
+                       totals_within = NULL){
+
+    cols_quo <- rlang::enquo(cols)
+    value_quo <- rlang::enquo(value)
+    wt_quo <- rlang::enquo(wt)
+    within_quo <- rlang::enquo(within)
+    totals_within_quo <- rlang::enquo(totals_within)
+
+    if(is.null(prop)) {prop <- FALSE}
+    if(is.null(pivot)){pivot <- TRUE}
+    if(is.null(wrap)) {wrap <- FALSE}
+    if(is.null(fun))  {fun <- sum   }
+
+    ########## group data by all row and col vars #############
+    grouped <- data %>%
+      dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
+                      .drop = FALSE)
+
+    ######### define value on which to summarize  ###############
+    if(rlang::quo_is_null(value_quo) ){
+
+      valued <- grouped %>%
+        dplyr::mutate(value = 1)
+
+    }else{
+
+      valued <- grouped %>%
+        dplyr::mutate(value = {{value}})
+
+    }
+
+    ######### weighting value if required ###################
+    if(!rlang::quo_is_null(wt_quo)){
+
+      valued <- valued %>%
+        dplyr::mutate(value = value*{{wt}})
+
+    }
+
+    ######### summarizing by group according to function ########
+
+    summarized <- valued %>%
+      dplyr::summarise(summary = fun(value))
+
+    ######## custom summaries props and percent, where within is defined ####
+
+      ## proportion ####
+    if(prop|percent){
+
+      if(is.null(round)&prop){round = 3}
+      if(is.null(round)&percent){round = 1}
+      multiplier <- ifelse(percent, 100, 1)
+
+      # proportion across all data, when 'within' is not defined
+      if(rlang::quo_is_null(within_quo) ){
+
+            summarized <- valued %>%
+              dplyr::ungroup() %>%
+              dplyr::summarise(summary = round(value*multiplier/sum(value), round))
+
+            }else{
+
+              summarized <- valued %>%
+                dplyr::ungroup() %>%
+                dplyr::group_by(dplyr::across(c({{within}})),
+                                .drop = FALSE) %>%
+                dplyr::summarise(summary = round(value*multiplier/sum(value), round))
+
+            }
+    }
+
+    ###  Just saving a place for adding rearrangement variable
+
+    arranged <- summarized
+
+    #####  Ungrouping
+    ungrouped <- arranged %>%
+      dplyr::ungroup()
+
+    #############  yields tidy data
+    tidy <- ungrouped
+
+    ####### should we actually pivot the data ####
+    # do not pivot if argument pivot false or if no columns specified
+    if(pivot == F | rlang::quo_is_null(cols_quo)){
+
+      out <- tidy  # for unpivoted value should be renamed conditionally
+
+      }else{
+
+      out <- tidy %>%
+        tidyr::pivot_wider(names_from = {{cols}})
+
+      }
+
+    return(out)
+
+}
 ```
 
 note: see original discussion here:
@@ -308,7 +485,7 @@ tidy_titanic %>%
 #>  8 Male  Child Yes      Crew      0
 #>  9 Male  Adult No       1st     118
 #> 10 Male  Adult No       2nd     154
-#> # … with 22 more rows
+#> # ℹ 22 more rows
 
 # count all
 tidy_titanic %>% 
@@ -387,12 +564,12 @@ tidy_titanic %>%
   gt::gt()
 ```
 
-<div id="jhgqijzcnm" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="zagrnfjnnr" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#jhgqijzcnm .gt_table {
+#zagrnfjnnr .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -417,7 +594,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#jhgqijzcnm .gt_heading {
+#zagrnfjnnr .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -429,12 +606,12 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#jhgqijzcnm .gt_caption {
+#zagrnfjnnr .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#jhgqijzcnm .gt_title {
+#zagrnfjnnr .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -446,7 +623,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#jhgqijzcnm .gt_subtitle {
+#zagrnfjnnr .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -458,13 +635,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#jhgqijzcnm .gt_bottom_border {
+#zagrnfjnnr .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#jhgqijzcnm .gt_col_headings {
+#zagrnfjnnr .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -479,7 +656,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#jhgqijzcnm .gt_col_heading {
+#zagrnfjnnr .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -499,7 +676,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#jhgqijzcnm .gt_column_spanner_outer {
+#zagrnfjnnr .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -511,15 +688,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#jhgqijzcnm .gt_column_spanner_outer:first-child {
+#zagrnfjnnr .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#jhgqijzcnm .gt_column_spanner_outer:last-child {
+#zagrnfjnnr .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#jhgqijzcnm .gt_column_spanner {
+#zagrnfjnnr .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -531,7 +708,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#jhgqijzcnm .gt_group_heading {
+#zagrnfjnnr .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -557,7 +734,7 @@ tidy_titanic %>%
   text-align: left;
 }
 
-#jhgqijzcnm .gt_empty_group_heading {
+#zagrnfjnnr .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -572,15 +749,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#jhgqijzcnm .gt_from_md > :first-child {
+#zagrnfjnnr .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#jhgqijzcnm .gt_from_md > :last-child {
+#zagrnfjnnr .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#jhgqijzcnm .gt_row {
+#zagrnfjnnr .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -599,7 +776,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#jhgqijzcnm .gt_stub {
+#zagrnfjnnr .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -612,7 +789,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#jhgqijzcnm .gt_stub_row_group {
+#zagrnfjnnr .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -626,11 +803,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#jhgqijzcnm .gt_row_group_first td {
+#zagrnfjnnr .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#jhgqijzcnm .gt_summary_row {
+#zagrnfjnnr .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -640,16 +817,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#jhgqijzcnm .gt_first_summary_row {
+#zagrnfjnnr .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#jhgqijzcnm .gt_first_summary_row.thick {
+#zagrnfjnnr .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#jhgqijzcnm .gt_last_summary_row {
+#zagrnfjnnr .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -659,7 +836,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#jhgqijzcnm .gt_grand_summary_row {
+#zagrnfjnnr .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -669,7 +846,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#jhgqijzcnm .gt_first_grand_summary_row {
+#zagrnfjnnr .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -679,11 +856,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#jhgqijzcnm .gt_striped {
+#zagrnfjnnr .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#jhgqijzcnm .gt_table_body {
+#zagrnfjnnr .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -692,7 +869,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#jhgqijzcnm .gt_footnotes {
+#zagrnfjnnr .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -706,7 +883,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#jhgqijzcnm .gt_footnote {
+#zagrnfjnnr .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -715,7 +892,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#jhgqijzcnm .gt_sourcenotes {
+#zagrnfjnnr .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -729,7 +906,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#jhgqijzcnm .gt_sourcenote {
+#zagrnfjnnr .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -737,64 +914,64 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#jhgqijzcnm .gt_left {
+#zagrnfjnnr .gt_left {
   text-align: left;
 }
 
-#jhgqijzcnm .gt_center {
+#zagrnfjnnr .gt_center {
   text-align: center;
 }
 
-#jhgqijzcnm .gt_right {
+#zagrnfjnnr .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#jhgqijzcnm .gt_font_normal {
+#zagrnfjnnr .gt_font_normal {
   font-weight: normal;
 }
 
-#jhgqijzcnm .gt_font_bold {
+#zagrnfjnnr .gt_font_bold {
   font-weight: bold;
 }
 
-#jhgqijzcnm .gt_font_italic {
+#zagrnfjnnr .gt_font_italic {
   font-style: italic;
 }
 
-#jhgqijzcnm .gt_super {
+#zagrnfjnnr .gt_super {
   font-size: 65%;
 }
 
-#jhgqijzcnm .gt_footnote_marks {
+#zagrnfjnnr .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#jhgqijzcnm .gt_asterisk {
+#zagrnfjnnr .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#jhgqijzcnm .gt_indent_1 {
+#zagrnfjnnr .gt_indent_1 {
   text-indent: 5px;
 }
 
-#jhgqijzcnm .gt_indent_2 {
+#zagrnfjnnr .gt_indent_2 {
   text-indent: 10px;
 }
 
-#jhgqijzcnm .gt_indent_3 {
+#zagrnfjnnr .gt_indent_3 {
   text-indent: 15px;
 }
 
-#jhgqijzcnm .gt_indent_4 {
+#zagrnfjnnr .gt_indent_4 {
   text-indent: 20px;
 }
 
-#jhgqijzcnm .gt_indent_5 {
+#zagrnfjnnr .gt_indent_5 {
   text-indent: 25px;
 }
 </style>
@@ -857,12 +1034,12 @@ tidy_titanic %>%
   gt::gt()
 ```
 
-<div id="yjvbdwyefq" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="utxtmqpzar" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#yjvbdwyefq .gt_table {
+#utxtmqpzar .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -887,7 +1064,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#yjvbdwyefq .gt_heading {
+#utxtmqpzar .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -899,12 +1076,12 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#yjvbdwyefq .gt_caption {
+#utxtmqpzar .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#yjvbdwyefq .gt_title {
+#utxtmqpzar .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -916,7 +1093,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#yjvbdwyefq .gt_subtitle {
+#utxtmqpzar .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -928,13 +1105,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#yjvbdwyefq .gt_bottom_border {
+#utxtmqpzar .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#yjvbdwyefq .gt_col_headings {
+#utxtmqpzar .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -949,7 +1126,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#yjvbdwyefq .gt_col_heading {
+#utxtmqpzar .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -969,7 +1146,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#yjvbdwyefq .gt_column_spanner_outer {
+#utxtmqpzar .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -981,15 +1158,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#yjvbdwyefq .gt_column_spanner_outer:first-child {
+#utxtmqpzar .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#yjvbdwyefq .gt_column_spanner_outer:last-child {
+#utxtmqpzar .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#yjvbdwyefq .gt_column_spanner {
+#utxtmqpzar .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -1001,7 +1178,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#yjvbdwyefq .gt_group_heading {
+#utxtmqpzar .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1027,7 +1204,7 @@ tidy_titanic %>%
   text-align: left;
 }
 
-#yjvbdwyefq .gt_empty_group_heading {
+#utxtmqpzar .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -1042,15 +1219,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#yjvbdwyefq .gt_from_md > :first-child {
+#utxtmqpzar .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#yjvbdwyefq .gt_from_md > :last-child {
+#utxtmqpzar .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#yjvbdwyefq .gt_row {
+#utxtmqpzar .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1069,7 +1246,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#yjvbdwyefq .gt_stub {
+#utxtmqpzar .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1082,7 +1259,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#yjvbdwyefq .gt_stub_row_group {
+#utxtmqpzar .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1096,11 +1273,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#yjvbdwyefq .gt_row_group_first td {
+#utxtmqpzar .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#yjvbdwyefq .gt_summary_row {
+#utxtmqpzar .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1110,16 +1287,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#yjvbdwyefq .gt_first_summary_row {
+#utxtmqpzar .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#yjvbdwyefq .gt_first_summary_row.thick {
+#utxtmqpzar .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#yjvbdwyefq .gt_last_summary_row {
+#utxtmqpzar .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1129,7 +1306,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#yjvbdwyefq .gt_grand_summary_row {
+#utxtmqpzar .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1139,7 +1316,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#yjvbdwyefq .gt_first_grand_summary_row {
+#utxtmqpzar .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1149,11 +1326,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#yjvbdwyefq .gt_striped {
+#utxtmqpzar .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#yjvbdwyefq .gt_table_body {
+#utxtmqpzar .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1162,7 +1339,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#yjvbdwyefq .gt_footnotes {
+#utxtmqpzar .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1176,7 +1353,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#yjvbdwyefq .gt_footnote {
+#utxtmqpzar .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -1185,7 +1362,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#yjvbdwyefq .gt_sourcenotes {
+#utxtmqpzar .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1199,7 +1376,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#yjvbdwyefq .gt_sourcenote {
+#utxtmqpzar .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -1207,64 +1384,64 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#yjvbdwyefq .gt_left {
+#utxtmqpzar .gt_left {
   text-align: left;
 }
 
-#yjvbdwyefq .gt_center {
+#utxtmqpzar .gt_center {
   text-align: center;
 }
 
-#yjvbdwyefq .gt_right {
+#utxtmqpzar .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#yjvbdwyefq .gt_font_normal {
+#utxtmqpzar .gt_font_normal {
   font-weight: normal;
 }
 
-#yjvbdwyefq .gt_font_bold {
+#utxtmqpzar .gt_font_bold {
   font-weight: bold;
 }
 
-#yjvbdwyefq .gt_font_italic {
+#utxtmqpzar .gt_font_italic {
   font-style: italic;
 }
 
-#yjvbdwyefq .gt_super {
+#utxtmqpzar .gt_super {
   font-size: 65%;
 }
 
-#yjvbdwyefq .gt_footnote_marks {
+#utxtmqpzar .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#yjvbdwyefq .gt_asterisk {
+#utxtmqpzar .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#yjvbdwyefq .gt_indent_1 {
+#utxtmqpzar .gt_indent_1 {
   text-indent: 5px;
 }
 
-#yjvbdwyefq .gt_indent_2 {
+#utxtmqpzar .gt_indent_2 {
   text-indent: 10px;
 }
 
-#yjvbdwyefq .gt_indent_3 {
+#utxtmqpzar .gt_indent_3 {
   text-indent: 15px;
 }
 
-#yjvbdwyefq .gt_indent_4 {
+#utxtmqpzar .gt_indent_4 {
   text-indent: 20px;
 }
 
-#yjvbdwyefq .gt_indent_5 {
+#utxtmqpzar .gt_indent_5 {
   text-indent: 25px;
 }
 </style>
