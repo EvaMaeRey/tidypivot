@@ -1,7 +1,11 @@
 
-  - [Internals](#internals)
+  - [{tidypivot} allows you to create tables by describing them (it
+    should feel a lot like
+    ggplot2).](#tidypivot-allows-you-to-create-tables-by-describing-them-it-should-feel-a-lot-like-ggplot2)
+      - [example](#example)
   - [Step 00. prep some data, records and flat data
     frame](#step-00-prep-some-data-records-and-flat-data-frame)
+      - [Internals](#internals)
   - [Step 0. Some observations](#step-0-some-observations)
       - [ggplot2: user needs to describe layout of
         table](#ggplot2-user-needs-to-describe-layout-of-table)
@@ -44,148 +48,46 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-``` r
-library(tidyverse)
-library(tidypivot)
-options(scipen = 10)
+# {tidypivot} allows you to create tables by describing them (it should feel a lot like ggplot2).
 
-ggplot2::diamonds %>% 
-  pivot_helper(rows = cut, 
-     cols = color)
-#> # A tibble: 5 × 8
-#>   cut           D     E     F     G     H     I     J
-#>   <ord>     <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
-#> 1 Fair        163   224   312   314   303   175   119
-#> 2 Good        662   933   909   871   702   522   307
-#> 3 Very Good  1513  2400  2164  2299  1824  1204   678
-#> 4 Premium    1603  2337  2331  2924  2360  1428   808
-#> 5 Ideal      2834  3903  3826  4884  3115  2093   896
-```
-
-### Internals
+## example
 
 ``` r
-pivot_helper <- function(data,
-                         
-                       rows = NULL,
-                       cols = NULL,
-                       
-                       value = NULL,
-                       fun = NULL,
-                       wt = NULL,
-                       
-                       prop = FALSE,
-                       percent = FALSE,
-                       round = NULL,
-                       within = NULL,
-                       withinfun = NULL,
-                       
-                       pivot = NULL,
-                       wrap = NULL,
-                       totals_within = NULL){
-
-    cols_quo <- rlang::enquo(cols)
-    value_quo <- rlang::enquo(value)
-    wt_quo <- rlang::enquo(wt)
-    within_quo <- rlang::enquo(within)
-    totals_within_quo <- rlang::enquo(totals_within)
-
-    if(is.null(prop)) {prop <- FALSE}
-    if(is.null(pivot)){pivot <- TRUE}
-    if(is.null(wrap)) {wrap <- FALSE}
-    if(is.null(fun))  {fun <- sum   }
-
-    ########## group data by all row and col vars #############
-    grouped <- data %>%
-      dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
-                      .drop = FALSE)
-
-    ######### define value on which to summarize  ###############
-    if(rlang::quo_is_null(value_quo) ){
-
-      valued <- grouped %>%
-        dplyr::mutate(value = 1)
-
-    }else{
-
-      valued <- grouped %>%
-        dplyr::mutate(value = {{value}})
-
-    }
-
-    ######### weighting value if required ###################
-    if(!rlang::quo_is_null(wt_quo)){
-
-      valued <- valued %>%
-        dplyr::mutate(value = value*{{wt}})
-
-    }
-
-    ######### summarizing by group according to function ########
-
-    summarized <- valued %>%
-      dplyr::summarise(summary = fun(value))
-
-    ######## custom summaries props and percent, where within is defined ####
-
-      ## proportion ####
-    if(prop|percent){
-
-      if(is.null(round)&prop){round = 3}
-      if(is.null(round)&percent){round = 1}
-      multiplier <- ifelse(percent, 100, 1)
-
-      # proportion across all data, when 'within' is not defined
-      if(rlang::quo_is_null(within_quo) ){
-
-            summarized <- valued %>%
-              dplyr::ungroup() %>%
-              dplyr::summarise(summary = round(value*multiplier/sum(value), round))
-
-            }else{
-
-              summarized <- valued %>%
-                dplyr::ungroup() %>%
-                dplyr::group_by(dplyr::across(c({{within}})),
-                                .drop = FALSE) %>%
-                dplyr::summarise(summary = round(value*multiplier/sum(value), round))
-
-            }
-    }
-
-    ###  Just saving a place for adding rearrangement variable
-
-    arranged <- summarized
-
-    #####  Ungrouping
-    ungrouped <- arranged %>%
-      dplyr::ungroup()
-
-    #############  yields tidy data
-    tidy <- ungrouped
-
-    ####### should we actually pivot the data ####
-    # do not pivot if argument pivot false or if no columns specified
-    if(pivot == F | rlang::quo_is_null(cols_quo)){
-
-      out <- tidy  # for unpivoted value should be renamed conditionally
-
-      }else{
-
-      out <- tidy %>%
-        tidyr::pivot_wider(names_from = {{cols}})
-
-      }
-
-    return(out)
-
-}
+mtcars
+#>                      mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+#> Mazda RX4           21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
+#> Mazda RX4 Wag       21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
+#> Datsun 710          22.8   4 108.0  93 3.85 2.320 18.61  1  1    4    1
+#> Hornet 4 Drive      21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
+#> Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
+#> Valiant             18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
+#> Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
+#> Merc 240D           24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
+#> Merc 230            22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
+#> Merc 280            19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+#> Merc 280C           17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+#> Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+#> Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+#> Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
+#> Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
+#> Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+#> Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
+#> Fiat 128            32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+#> Honda Civic         30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+#> Toyota Corolla      33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+#> Toyota Corona       21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+#> Dodge Challenger    15.5   8 318.0 150 2.76 3.520 16.87  0  0    3    2
+#> AMC Javelin         15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2
+#> Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
+#> Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
+#> Fiat X1-9           27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+#> Porsche 914-2       26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+#> Lotus Europa        30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
+#> Ford Pantera L      15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4
+#> Ferrari Dino        19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+#> Maserati Bora       15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8
+#> Volvo 142E          21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2
 ```
-
-note: see original discussion here:
-<https://evamaerey.github.io/mytidytuesday/2022-02-14-tables/tables.html>
-and thoughtful contributions from @shannonpileggi and @brshallow
-<https://github.com/EvaMaeRey/mytidytuesday/issues/3>
 
 # Step 00. prep some data, records and flat data frame
 
@@ -217,6 +119,164 @@ flat_titanic ; flat_titanic %>% head()
 #> 6   2nd Female Child       No    0
 ```
 
+``` r
+library(tidyverse)
+library(tidypivot)
+options(scipen = 10)
+
+# forcats::gss_cat
+
+ggplot2::diamonds %>% 
+  pivot_helper(rows = cut, 
+     cols = color, 
+     within = color)
+#> # A tibble: 5 × 8
+#>   cut           D     E     F     G     H     I     J
+#>   <ord>     <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
+#> 1 Fair        163   224   312   314   303   175   119
+#> 2 Good        662   933   909   871   702   522   307
+#> 3 Very Good  1513  2400  2164  2299  1824  1204   678
+#> 4 Premium    1603  2337  2331  2924  2360  1428   808
+#> 5 Ideal      2834  3903  3826  4884  3115  2093   896
+
+
+tidy_titanic %>% 
+  pivot_helper(rows = Sex,
+               cols = Survived,
+               prop = T,
+               within = Sex)
+#> # A tibble: 2 × 3
+#>   Sex       No   Yes
+#>   <fct>  <dbl> <dbl>
+#> 1 Male   0.788 0.212
+#> 2 Female 0.268 0.732
+```
+
+### Internals
+
+``` r
+pivot_helper <- function(data,
+                       rows = NULL,
+                       cols = NULL,
+                       value = NULL,
+                       wt = NULL,
+                       
+                       fun = NULL,
+                       
+                       prop = FALSE,
+                       percent = FALSE,
+                       round = NULL,
+                       
+                       within = NULL,
+                       withinfun = NULL,
+                       
+                       pivot = NULL,
+                       wrap = NULL,
+                       totals_within = NULL
+){
+
+  
+    cols_quo          <- rlang::enquo(cols)
+    value_quo         <- rlang::enquo(value)
+    wt_quo            <- rlang::enquo(wt)
+    within_quo        <- rlang::enquo(within)
+    totals_within_quo <- rlang::enquo(totals_within)
+
+    if(is.null(prop)) {prop <- FALSE}
+    if(is.null(pivot)){pivot <- TRUE}
+    if(is.null(wrap)) {wrap <- FALSE}
+
+    if(is.null(fun))  {fun <- sum}
+
+    ## adding a value as 1 if there is none
+    
+    if(rlang::quo_is_null(value_quo) ){
+
+      data <- data %>%
+        dplyr::mutate(value = 1)
+      
+    }else{
+      
+      data <- data %>% 
+          dplyr::mutate(value = {{value}})
+        
+    }
+    
+    #### weighting ####
+    
+    if(!rlang::quo_is_null(wt_quo) ){
+     
+      data <- data %>%
+        dplyr::mutate(value = value * {{wt}}) 
+   }
+    
+    
+    ### grouping by tabulation vars col and row
+    grouped <- data %>%
+      dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
+                      .drop = FALSE)
+  
+    ### summarizing ####
+    
+    summarized <- grouped %>%
+        dplyr::mutate(value = 1) %>%
+        dplyr::summarise(value = fun(value))
+
+    # proportion case or percent
+    if(prop|percent){
+      
+      mult <- ifelse(percent, 100, 1)
+      if(is.null(round)){round <- ifelse(percent, 1, 3)}
+
+      # prop is across all data
+        if(rlang::quo_is_null(within_quo) ){
+
+            summarized <- summarized %>%
+              dplyr::ungroup() %>%
+              dplyr::mutate(value = round(value*mult/sum(value), round))
+
+        # prop is within categories specified by within variable
+        }else{
+
+              summarized <- summarized %>%
+                dplyr::ungroup() %>%
+                dplyr::group_by(dplyr::across(c({{within}})),
+                                .drop = FALSE) %>%
+                dplyr::mutate(value = round(value*mult/sum(value), round))
+
+        }
+    }
+
+    arranged <- summarized
+
+    ungrouped <- arranged %>%
+      dplyr::ungroup()
+
+    tidy <- ungrouped
+
+    # do not pivot if argument pivot false or if no columns specified
+    if(pivot == F | rlang::quo_is_null(cols_quo)){
+
+      tidy
+      # tidy %>%
+      #   dplyr::rename(count = .data$value)
+
+      # otherwise pivot by columns
+    }else{
+
+      tidy %>%
+        tidyr::pivot_wider(names_from = {{cols}})
+
+    }
+
+  }
+```
+
+note: see original discussion here:
+<https://evamaerey.github.io/mytidytuesday/2022-02-14-tables/tables.html>
+and thoughtful contributions from @shannonpileggi and @brshallow
+<https://github.com/EvaMaeRey/mytidytuesday/issues/3>
+
 -----
 
 # Step 0. Some observations
@@ -242,7 +302,7 @@ tidy_titanic %>%
   geom_count(color = "blue")
 ```
 
-<img src="man/figures/README-unnamed-chunk-3-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-4-1.png" width="100%" />
 
 -----
 
@@ -564,12 +624,12 @@ tidy_titanic %>%
   gt::gt()
 ```
 
-<div id="zagrnfjnnr" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="gjazffundr" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#zagrnfjnnr .gt_table {
+#gjazffundr .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -594,7 +654,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#zagrnfjnnr .gt_heading {
+#gjazffundr .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -606,12 +666,12 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#zagrnfjnnr .gt_caption {
+#gjazffundr .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#zagrnfjnnr .gt_title {
+#gjazffundr .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -623,7 +683,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#zagrnfjnnr .gt_subtitle {
+#gjazffundr .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -635,13 +695,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#zagrnfjnnr .gt_bottom_border {
+#gjazffundr .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#zagrnfjnnr .gt_col_headings {
+#gjazffundr .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -656,7 +716,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#zagrnfjnnr .gt_col_heading {
+#gjazffundr .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -676,7 +736,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#zagrnfjnnr .gt_column_spanner_outer {
+#gjazffundr .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -688,15 +748,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#zagrnfjnnr .gt_column_spanner_outer:first-child {
+#gjazffundr .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#zagrnfjnnr .gt_column_spanner_outer:last-child {
+#gjazffundr .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#zagrnfjnnr .gt_column_spanner {
+#gjazffundr .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -708,7 +768,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#zagrnfjnnr .gt_group_heading {
+#gjazffundr .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -734,7 +794,7 @@ tidy_titanic %>%
   text-align: left;
 }
 
-#zagrnfjnnr .gt_empty_group_heading {
+#gjazffundr .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -749,15 +809,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#zagrnfjnnr .gt_from_md > :first-child {
+#gjazffundr .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#zagrnfjnnr .gt_from_md > :last-child {
+#gjazffundr .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#zagrnfjnnr .gt_row {
+#gjazffundr .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -776,7 +836,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#zagrnfjnnr .gt_stub {
+#gjazffundr .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -789,7 +849,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#zagrnfjnnr .gt_stub_row_group {
+#gjazffundr .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -803,11 +863,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#zagrnfjnnr .gt_row_group_first td {
+#gjazffundr .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#zagrnfjnnr .gt_summary_row {
+#gjazffundr .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -817,16 +877,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#zagrnfjnnr .gt_first_summary_row {
+#gjazffundr .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#zagrnfjnnr .gt_first_summary_row.thick {
+#gjazffundr .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#zagrnfjnnr .gt_last_summary_row {
+#gjazffundr .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -836,7 +896,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#zagrnfjnnr .gt_grand_summary_row {
+#gjazffundr .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -846,7 +906,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#zagrnfjnnr .gt_first_grand_summary_row {
+#gjazffundr .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -856,11 +916,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#zagrnfjnnr .gt_striped {
+#gjazffundr .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#zagrnfjnnr .gt_table_body {
+#gjazffundr .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -869,7 +929,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#zagrnfjnnr .gt_footnotes {
+#gjazffundr .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -883,7 +943,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#zagrnfjnnr .gt_footnote {
+#gjazffundr .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -892,7 +952,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#zagrnfjnnr .gt_sourcenotes {
+#gjazffundr .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -906,7 +966,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#zagrnfjnnr .gt_sourcenote {
+#gjazffundr .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -914,64 +974,64 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#zagrnfjnnr .gt_left {
+#gjazffundr .gt_left {
   text-align: left;
 }
 
-#zagrnfjnnr .gt_center {
+#gjazffundr .gt_center {
   text-align: center;
 }
 
-#zagrnfjnnr .gt_right {
+#gjazffundr .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#zagrnfjnnr .gt_font_normal {
+#gjazffundr .gt_font_normal {
   font-weight: normal;
 }
 
-#zagrnfjnnr .gt_font_bold {
+#gjazffundr .gt_font_bold {
   font-weight: bold;
 }
 
-#zagrnfjnnr .gt_font_italic {
+#gjazffundr .gt_font_italic {
   font-style: italic;
 }
 
-#zagrnfjnnr .gt_super {
+#gjazffundr .gt_super {
   font-size: 65%;
 }
 
-#zagrnfjnnr .gt_footnote_marks {
+#gjazffundr .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#zagrnfjnnr .gt_asterisk {
+#gjazffundr .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#zagrnfjnnr .gt_indent_1 {
+#gjazffundr .gt_indent_1 {
   text-indent: 5px;
 }
 
-#zagrnfjnnr .gt_indent_2 {
+#gjazffundr .gt_indent_2 {
   text-indent: 10px;
 }
 
-#zagrnfjnnr .gt_indent_3 {
+#gjazffundr .gt_indent_3 {
   text-indent: 15px;
 }
 
-#zagrnfjnnr .gt_indent_4 {
+#gjazffundr .gt_indent_4 {
   text-indent: 20px;
 }
 
-#zagrnfjnnr .gt_indent_5 {
+#gjazffundr .gt_indent_5 {
   text-indent: 25px;
 }
 </style>
@@ -1034,12 +1094,12 @@ tidy_titanic %>%
   gt::gt()
 ```
 
-<div id="utxtmqpzar" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<div id="pbpmqpurgr" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
 <style>html {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
 }
 
-#utxtmqpzar .gt_table {
+#pbpmqpurgr .gt_table {
   display: table;
   border-collapse: collapse;
   margin-left: auto;
@@ -1064,7 +1124,7 @@ tidy_titanic %>%
   border-left-color: #D3D3D3;
 }
 
-#utxtmqpzar .gt_heading {
+#pbpmqpurgr .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -1076,12 +1136,12 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#utxtmqpzar .gt_caption {
+#pbpmqpurgr .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#utxtmqpzar .gt_title {
+#pbpmqpurgr .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -1093,7 +1153,7 @@ tidy_titanic %>%
   border-bottom-width: 0;
 }
 
-#utxtmqpzar .gt_subtitle {
+#pbpmqpurgr .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -1105,13 +1165,13 @@ tidy_titanic %>%
   border-top-width: 0;
 }
 
-#utxtmqpzar .gt_bottom_border {
+#pbpmqpurgr .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#utxtmqpzar .gt_col_headings {
+#pbpmqpurgr .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1126,7 +1186,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#utxtmqpzar .gt_col_heading {
+#pbpmqpurgr .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1146,7 +1206,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#utxtmqpzar .gt_column_spanner_outer {
+#pbpmqpurgr .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1158,15 +1218,15 @@ tidy_titanic %>%
   padding-right: 4px;
 }
 
-#utxtmqpzar .gt_column_spanner_outer:first-child {
+#pbpmqpurgr .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#utxtmqpzar .gt_column_spanner_outer:last-child {
+#pbpmqpurgr .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#utxtmqpzar .gt_column_spanner {
+#pbpmqpurgr .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -1178,7 +1238,7 @@ tidy_titanic %>%
   width: 100%;
 }
 
-#utxtmqpzar .gt_group_heading {
+#pbpmqpurgr .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1204,7 +1264,7 @@ tidy_titanic %>%
   text-align: left;
 }
 
-#utxtmqpzar .gt_empty_group_heading {
+#pbpmqpurgr .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -1219,15 +1279,15 @@ tidy_titanic %>%
   vertical-align: middle;
 }
 
-#utxtmqpzar .gt_from_md > :first-child {
+#pbpmqpurgr .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#utxtmqpzar .gt_from_md > :last-child {
+#pbpmqpurgr .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#utxtmqpzar .gt_row {
+#pbpmqpurgr .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1246,7 +1306,7 @@ tidy_titanic %>%
   overflow-x: hidden;
 }
 
-#utxtmqpzar .gt_stub {
+#pbpmqpurgr .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1259,7 +1319,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#utxtmqpzar .gt_stub_row_group {
+#pbpmqpurgr .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -1273,11 +1333,11 @@ tidy_titanic %>%
   vertical-align: top;
 }
 
-#utxtmqpzar .gt_row_group_first td {
+#pbpmqpurgr .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#utxtmqpzar .gt_summary_row {
+#pbpmqpurgr .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1287,16 +1347,16 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#utxtmqpzar .gt_first_summary_row {
+#pbpmqpurgr .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#utxtmqpzar .gt_first_summary_row.thick {
+#pbpmqpurgr .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#utxtmqpzar .gt_last_summary_row {
+#pbpmqpurgr .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1306,7 +1366,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#utxtmqpzar .gt_grand_summary_row {
+#pbpmqpurgr .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -1316,7 +1376,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#utxtmqpzar .gt_first_grand_summary_row {
+#pbpmqpurgr .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -1326,11 +1386,11 @@ tidy_titanic %>%
   border-top-color: #D3D3D3;
 }
 
-#utxtmqpzar .gt_striped {
+#pbpmqpurgr .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#utxtmqpzar .gt_table_body {
+#pbpmqpurgr .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -1339,7 +1399,7 @@ tidy_titanic %>%
   border-bottom-color: #D3D3D3;
 }
 
-#utxtmqpzar .gt_footnotes {
+#pbpmqpurgr .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1353,7 +1413,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#utxtmqpzar .gt_footnote {
+#pbpmqpurgr .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-left: 4px;
@@ -1362,7 +1422,7 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#utxtmqpzar .gt_sourcenotes {
+#pbpmqpurgr .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1376,7 +1436,7 @@ tidy_titanic %>%
   border-right-color: #D3D3D3;
 }
 
-#utxtmqpzar .gt_sourcenote {
+#pbpmqpurgr .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -1384,64 +1444,64 @@ tidy_titanic %>%
   padding-right: 5px;
 }
 
-#utxtmqpzar .gt_left {
+#pbpmqpurgr .gt_left {
   text-align: left;
 }
 
-#utxtmqpzar .gt_center {
+#pbpmqpurgr .gt_center {
   text-align: center;
 }
 
-#utxtmqpzar .gt_right {
+#pbpmqpurgr .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#utxtmqpzar .gt_font_normal {
+#pbpmqpurgr .gt_font_normal {
   font-weight: normal;
 }
 
-#utxtmqpzar .gt_font_bold {
+#pbpmqpurgr .gt_font_bold {
   font-weight: bold;
 }
 
-#utxtmqpzar .gt_font_italic {
+#pbpmqpurgr .gt_font_italic {
   font-style: italic;
 }
 
-#utxtmqpzar .gt_super {
+#pbpmqpurgr .gt_super {
   font-size: 65%;
 }
 
-#utxtmqpzar .gt_footnote_marks {
+#pbpmqpurgr .gt_footnote_marks {
   font-style: italic;
   font-weight: normal;
   font-size: 75%;
   vertical-align: 0.4em;
 }
 
-#utxtmqpzar .gt_asterisk {
+#pbpmqpurgr .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#utxtmqpzar .gt_indent_1 {
+#pbpmqpurgr .gt_indent_1 {
   text-indent: 5px;
 }
 
-#utxtmqpzar .gt_indent_2 {
+#pbpmqpurgr .gt_indent_2 {
   text-indent: 10px;
 }
 
-#utxtmqpzar .gt_indent_3 {
+#pbpmqpurgr .gt_indent_3 {
   text-indent: 15px;
 }
 
-#utxtmqpzar .gt_indent_4 {
+#pbpmqpurgr .gt_indent_4 {
   text-indent: 20px;
 }
 
-#utxtmqpzar .gt_indent_5 {
+#pbpmqpurgr .gt_indent_5 {
   text-indent: 25px;
 }
 </style>
@@ -1689,7 +1749,7 @@ tidy_titanic %>%
     I think being consistent with that expectation might be a good
     thing. Also less challenging to implement.
 
-<img src="man/figures/README-unnamed-chunk-8-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-9-1.png" width="100%" />
 
 # Other work in this space
 
@@ -1854,7 +1914,7 @@ anscombe %>%
   theme(panel.grid.minor = element_blank())
 ```
 
-<img src="man/figures/README-unnamed-chunk-12-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-13-1.png" width="100%" />
 
 ``` r
 # or
@@ -1897,7 +1957,7 @@ ggstamp::ggdraft() +
   hjust = 0, size = 8, x = .01, y = .4)
 ```
 
-<img src="man/figures/README-unnamed-chunk-13-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-14-1.png" width="100%" />
 
 ``` r
 
@@ -1908,4 +1968,122 @@ ggstamp::ggcanvas() +
                       label = c("ggplot2", "tidyr", "dplyr"))
 ```
 
-<img src="man/figures/README-unnamed-chunk-13-2.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-14-2.png" width="100%" />
+
+``` r
+pivot_helper <- function(data,
+                         
+                       rows = NULL,
+                       cols = NULL,
+                       
+                       value = NULL,
+                       fun = NULL,
+                       wt = NULL,
+                       
+                       prop = FALSE,
+                       percent = FALSE,
+                       round = NULL,
+                       within = NULL,
+                       withinfun = NULL,
+                       
+                       pivot = NULL,
+                       wrap = NULL,
+                       totals_within = NULL){
+
+    cols_quo <- rlang::enquo(cols)
+    value_quo <- rlang::enquo(value)
+    wt_quo <- rlang::enquo(wt)
+    within_quo <- rlang::enquo(within)
+    totals_within_quo <- rlang::enquo(totals_within)
+
+    if(is.null(prop)) {prop <- FALSE}
+    if(is.null(pivot)){pivot <- TRUE}
+    if(is.null(wrap)) {wrap <- FALSE}
+    if(is.null(fun))  {fun <- sum   }
+
+    ########## group data by all row and col vars #############
+    grouped <- data %>%
+      dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
+                      .drop = FALSE)
+
+    ######### define value on which to summarize  ###############
+    if(rlang::quo_is_null(value_quo) ){
+
+      valued <- grouped %>%
+        dplyr::mutate(value = 1)
+
+    }else{
+
+      valued <- grouped %>%
+        dplyr::mutate(value = {{value}})
+
+    }
+
+    ######### weighting value if required ###################
+    if(!rlang::quo_is_null(wt_quo)){
+
+      valued <- valued %>%
+        dplyr::mutate(value = value*{{wt}})
+
+    }
+
+    ######### summarizing by group according to function ########
+
+    summarized <- valued %>%
+      dplyr::summarise(summary = fun(value))
+
+    ######## custom summaries props and percent, where within is defined ####
+
+      ## proportion ####
+    if(prop|percent){
+
+      if(is.null(round)&prop){round = 3}
+      if(is.null(round)&percent){round = 1}
+      multiplier <- ifelse(percent, 100, 1)
+
+      # proportion across all data, when 'within' is not defined
+      if(rlang::quo_is_null(within_quo) ){
+
+            summarized <- valued %>%
+              dplyr::ungroup() %>%
+              dplyr::summarise(summary = round(value*multiplier/sum(value), round))
+
+            }else{
+
+              summarized <- valued %>%
+                dplyr::ungroup() %>%
+                dplyr::group_by(dplyr::across(c({{within}})),
+                                .drop = FALSE) %>%
+                dplyr::summarise(summary = round(value*multiplier/sum(value), round))
+
+            }
+    }
+
+    ###  Just saving a place for adding rearrangement variable
+
+    arranged <- summarized
+
+    #####  Ungrouping
+    ungrouped <- arranged %>%
+      dplyr::ungroup()
+
+    #############  yields tidy data
+    tidy <- ungrouped
+
+    ####### should we actually pivot the data ####
+    # do not pivot if argument pivot false or if no columns specified
+    if(pivot == F | rlang::quo_is_null(cols_quo)){
+
+      out <- tidy  # for unpivoted value should be renamed conditionally
+
+      }else{
+
+      out <- tidy %>%
+        tidyr::pivot_wider(names_from = {{cols}})
+
+      }
+
+    return(out)
+
+}
+```

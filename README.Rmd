@@ -16,143 +16,17 @@ knitr::opts_chunk$set(
 knitr::opts_chunk$set(message = F, warning = F)
 ```
 
+
+# {tidypivot} allows you to create tables by describing them (it should feel a lot like ggplot2).
+
+
+## example
+
 ```{r}
-library(tidyverse)
-library(tidypivot)
-options(scipen = 10)
+mtcars
 
-ggplot2::diamonds %>% 
-  pivot_helper(rows = cut, 
-     cols = color)
+
 ```
-
-
-### Internals
-
-
-```{r tp, eval = F}
-pivot_helper <- function(data,
-                         
-                       rows = NULL,
-                       cols = NULL,
-                       
-                       value = NULL,
-                       fun = NULL,
-                       wt = NULL,
-                       
-                       prop = FALSE,
-                       percent = FALSE,
-                       round = NULL,
-                       within = NULL,
-                       withinfun = NULL,
-                       
-                       pivot = NULL,
-                       wrap = NULL,
-                       totals_within = NULL){
-
-    cols_quo <- rlang::enquo(cols)
-    value_quo <- rlang::enquo(value)
-    wt_quo <- rlang::enquo(wt)
-    within_quo <- rlang::enquo(within)
-    totals_within_quo <- rlang::enquo(totals_within)
-
-    if(is.null(prop)) {prop <- FALSE}
-    if(is.null(pivot)){pivot <- TRUE}
-    if(is.null(wrap)) {wrap <- FALSE}
-    if(is.null(fun))  {fun <- sum   }
-
-    ########## group data by all row and col vars #############
-    grouped <- data %>%
-      dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
-                      .drop = FALSE)
-
-    ######### define value on which to summarize  ###############
-    if(rlang::quo_is_null(value_quo) ){
-
-      valued <- grouped %>%
-        dplyr::mutate(value = 1)
-
-    }else{
-
-      valued <- grouped %>%
-        dplyr::mutate(value = {{value}})
-
-    }
-
-    ######### weighting value if required ###################
-    if(!rlang::quo_is_null(wt_quo)){
-
-      valued <- valued %>%
-        dplyr::mutate(value = value*{{wt}})
-
-    }
-
-    ######### summarizing by group according to function ########
-
-    summarized <- valued %>%
-      dplyr::summarise(summary = fun(value))
-
-
-    ######## custom summaries props and percent, where within is defined ####
-
-      ## proportion ####
-    if(prop|percent){
-
-      if(is.null(round)&prop){round = 3}
-      if(is.null(round)&percent){round = 1}
-      multiplier <- ifelse(percent, 100, 1)
-
-      # proportion across all data, when 'within' is not defined
-      if(rlang::quo_is_null(within_quo) ){
-
-            summarized <- valued %>%
-              dplyr::ungroup() %>%
-              dplyr::summarise(summary = round(value*multiplier/sum(value), round))
-
-            }else{
-
-              summarized <- valued %>%
-                dplyr::ungroup() %>%
-                dplyr::group_by(dplyr::across(c({{within}})),
-                                .drop = FALSE) %>%
-                dplyr::summarise(summary = round(value*multiplier/sum(value), round))
-
-            }
-    }
-
-
-    ###  Just saving a place for adding rearrangement variable
-
-    arranged <- summarized
-
-    #####  Ungrouping
-    ungrouped <- arranged %>%
-      dplyr::ungroup()
-
-    #############  yields tidy data
-    tidy <- ungrouped
-
-
-    ####### should we actually pivot the data ####
-    # do not pivot if argument pivot false or if no columns specified
-    if(pivot == F | rlang::quo_is_null(cols_quo)){
-
-      out <- tidy  # for unpivoted value should be renamed conditionally
-
-      }else{
-
-      out <- tidy %>%
-        tidyr::pivot_wider(names_from = {{cols}})
-
-      }
-
-    return(out)
-
-}
-```
-
-
-note: see original discussion here: https://evamaerey.github.io/mytidytuesday/2022-02-14-tables/tables.html and thoughtful contributions from @shannonpileggi and @brshallow https://github.com/EvaMaeRey/mytidytuesday/issues/3
 
 # Step 00. prep some data, records and flat data frame
 
@@ -169,6 +43,155 @@ Titanic %>%
   data.frame() ->
 flat_titanic ; flat_titanic %>% head()
 ```
+
+
+```{r}
+library(tidyverse)
+library(tidypivot)
+options(scipen = 10)
+
+# forcats::gss_cat
+
+ggplot2::diamonds %>% 
+  pivot_helper(rows = cut, 
+     cols = color, 
+     within = color)
+
+
+tidy_titanic %>% 
+  pivot_helper(rows = Sex,
+               cols = Survived,
+               prop = T,
+               within = Sex)
+```
+
+### Internals
+
+```{r tp, eval = F}
+pivot_helper <- function(data,
+                       rows = NULL,
+                       cols = NULL,
+                       value = NULL,
+                       wt = NULL,
+                       
+                       fun = NULL,
+                       
+                       prop = FALSE,
+                       percent = FALSE,
+                       round = NULL,
+                       
+                       within = NULL,
+                       withinfun = NULL,
+                       
+                       pivot = NULL,
+                       wrap = NULL,
+                       totals_within = NULL
+){
+
+  
+    cols_quo          <- rlang::enquo(cols)
+    value_quo         <- rlang::enquo(value)
+    wt_quo            <- rlang::enquo(wt)
+    within_quo        <- rlang::enquo(within)
+    totals_within_quo <- rlang::enquo(totals_within)
+
+    if(is.null(prop)) {prop <- FALSE}
+    if(is.null(pivot)){pivot <- TRUE}
+    if(is.null(wrap)) {wrap <- FALSE}
+
+    if(is.null(fun))  {fun <- sum}
+
+    ## adding a value as 1 if there is none
+    
+    if(rlang::quo_is_null(value_quo) ){
+
+      data <- data %>%
+        dplyr::mutate(value = 1)
+      
+    }else{
+      
+      data <- data %>% 
+          dplyr::mutate(value = {{value}})
+        
+    }
+    
+    #### weighting ####
+    
+    if(!rlang::quo_is_null(wt_quo) ){
+     
+      data <- data %>%
+        dplyr::mutate(value = value * {{wt}}) 
+   }
+    
+    
+    ### grouping by tabulation vars col and row
+    grouped <- data %>%
+      dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
+                      .drop = FALSE)
+  
+    ### summarizing ####
+    
+    summarized <- grouped %>%
+        dplyr::mutate(value = 1) %>%
+        dplyr::summarise(value = fun(value))
+
+    # proportion case or percent
+    if(prop|percent){
+      
+      mult <- ifelse(percent, 100, 1)
+      if(is.null(round)){round <- ifelse(percent, 1, 3)}
+
+      # prop is across all data
+        if(rlang::quo_is_null(within_quo) ){
+
+            summarized <- summarized %>%
+              dplyr::ungroup() %>%
+              dplyr::mutate(value = round(value*mult/sum(value), round))
+
+        # prop is within categories specified by within variable
+        }else{
+
+              summarized <- summarized %>%
+                dplyr::ungroup() %>%
+                dplyr::group_by(dplyr::across(c({{within}})),
+                                .drop = FALSE) %>%
+                dplyr::mutate(value = round(value*mult/sum(value), round))
+
+        }
+    }
+
+
+    arranged <- summarized
+
+    ungrouped <- arranged %>%
+      dplyr::ungroup()
+
+    tidy <- ungrouped
+
+
+    # do not pivot if argument pivot false or if no columns specified
+    if(pivot == F | rlang::quo_is_null(cols_quo)){
+
+      tidy
+      # tidy %>%
+      #   dplyr::rename(count = .data$value)
+
+      # otherwise pivot by columns
+    }else{
+
+      tidy %>%
+        tidyr::pivot_wider(names_from = {{cols}})
+
+    }
+
+  }
+
+```
+
+
+note: see original discussion here: https://evamaerey.github.io/mytidytuesday/2022-02-14-tables/tables.html and thoughtful contributions from @shannonpileggi and @brshallow https://github.com/EvaMaeRey/mytidytuesday/issues/3
+
+
 
 ---
 
@@ -516,4 +539,127 @@ ggstamp::ggcanvas() +
 
 ```
 
+
+
+```{r}
+pivot_helper <- function(data,
+                         
+                       rows = NULL,
+                       cols = NULL,
+                       
+                       value = NULL,
+                       fun = NULL,
+                       wt = NULL,
+                       
+                       prop = FALSE,
+                       percent = FALSE,
+                       round = NULL,
+                       within = NULL,
+                       withinfun = NULL,
+                       
+                       pivot = NULL,
+                       wrap = NULL,
+                       totals_within = NULL){
+
+    cols_quo <- rlang::enquo(cols)
+    value_quo <- rlang::enquo(value)
+    wt_quo <- rlang::enquo(wt)
+    within_quo <- rlang::enquo(within)
+    totals_within_quo <- rlang::enquo(totals_within)
+
+    if(is.null(prop)) {prop <- FALSE}
+    if(is.null(pivot)){pivot <- TRUE}
+    if(is.null(wrap)) {wrap <- FALSE}
+    if(is.null(fun))  {fun <- sum   }
+
+    ########## group data by all row and col vars #############
+    grouped <- data %>%
+      dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
+                      .drop = FALSE)
+
+    ######### define value on which to summarize  ###############
+    if(rlang::quo_is_null(value_quo) ){
+
+      valued <- grouped %>%
+        dplyr::mutate(value = 1)
+
+    }else{
+
+      valued <- grouped %>%
+        dplyr::mutate(value = {{value}})
+
+    }
+
+    ######### weighting value if required ###################
+    if(!rlang::quo_is_null(wt_quo)){
+
+      valued <- valued %>%
+        dplyr::mutate(value = value*{{wt}})
+
+    }
+
+    ######### summarizing by group according to function ########
+
+    summarized <- valued %>%
+      dplyr::summarise(summary = fun(value))
+
+
+    ######## custom summaries props and percent, where within is defined ####
+
+      ## proportion ####
+    if(prop|percent){
+
+      if(is.null(round)&prop){round = 3}
+      if(is.null(round)&percent){round = 1}
+      multiplier <- ifelse(percent, 100, 1)
+
+      # proportion across all data, when 'within' is not defined
+      if(rlang::quo_is_null(within_quo) ){
+
+            summarized <- valued %>%
+              dplyr::ungroup() %>%
+              dplyr::summarise(summary = round(value*multiplier/sum(value), round))
+
+            }else{
+
+              summarized <- valued %>%
+                dplyr::ungroup() %>%
+                dplyr::group_by(dplyr::across(c({{within}})),
+                                .drop = FALSE) %>%
+                dplyr::summarise(summary = round(value*multiplier/sum(value), round))
+
+            }
+    }
+
+
+    ###  Just saving a place for adding rearrangement variable
+
+    arranged <- summarized
+
+    #####  Ungrouping
+    ungrouped <- arranged %>%
+      dplyr::ungroup()
+
+    #############  yields tidy data
+    tidy <- ungrouped
+
+
+    ####### should we actually pivot the data ####
+    # do not pivot if argument pivot false or if no columns specified
+    if(pivot == F | rlang::quo_is_null(cols_quo)){
+
+      out <- tidy  # for unpivoted value should be renamed conditionally
+
+      }else{
+
+      out <- tidy %>%
+        tidyr::pivot_wider(names_from = {{cols}})
+
+      }
+
+    return(out)
+
+}
+
+```
 
