@@ -199,20 +199,65 @@ pivotr <- function(data,
 
 ``` r
 
-#' tidy_titanic %>% pivotr(rows = sex, cols = survived, fun = length) # pivot_count
-#' flat_titanic %>% pivotr(rows = sex, value = freq, fun = mean) # pivot_calc
-#' flat_titanic %>% pivotr(rows = sex, value = freq, fun = sum) # pivot_count (weighted sum)
-#' nar <- function(x) return(NA)
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, fun = nar); #pivot_null
-#' sample1 <- function(x) sample(x, 1)
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, fun = sample1, value = freq); #pivot_sam
-#' samplen <- function(x, n) paste(sample(x, 5, replace = F), collapse = ", ")
-#' # flat_titanic %>% pivotr(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_s
-#' paste_collapse <- function(x) paste (x, collapse = ", ")
-#' flat_titanic %>% pivotr(rows = sex, fun = paste_collapse, value = freq) # pivot_list
-#' flat_titanic %>% pivotr(rows = sex, value = freq, prop = TRUE) # pivot_prop
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
+tidy_titanic %>% pivotr(rows = sex, cols = survived, fun = length) # pivot_count
+#> # A tibble: 2 × 3
+#>   sex       No   Yes
+#>   <fct>  <int> <int>
+#> 1 Male    1364   367
+#> 2 Female   126   344
+flat_titanic %>% pivotr(rows = sex, value = freq, fun = mean) # pivot_calc
+#> # A tibble: 2 × 2
+#>   sex    value
+#>   <fct>  <dbl>
+#> 1 Male       1
+#> 2 Female     1
+flat_titanic %>% pivotr(rows = sex, value = freq, fun = sum) # pivot_count (weighted sum)
+#> # A tibble: 2 × 2
+#>   sex    value
+#>   <fct>  <dbl>
+#> 1 Male      16
+#> 2 Female    16
+nar <- function(x) return(NA)
+flat_titanic %>% pivotr(rows = sex, cols = survived, fun = nar); #pivot_null
+#> # A tibble: 2 × 3
+#>   sex    No    Yes  
+#>   <fct>  <lgl> <lgl>
+#> 1 Male   NA    NA   
+#> 2 Female NA    NA
+sample1 <- function(x) sample(x, 1)
+flat_titanic %>% pivotr(rows = sex, cols = survived, fun = sample1, value = freq); #pivot_sam
+#> # A tibble: 2 × 3
+#>   sex       No   Yes
+#>   <fct>  <dbl> <dbl>
+#> 1 Male       1     1
+#> 2 Female     1     1
+samplen <- function(x, n) paste(sample(x, 5, replace = F), collapse = ", ")
+# flat_titanic %>% pivotr(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_s
+paste_collapse <- function(x) paste (x, collapse = ", ")
+flat_titanic %>% pivotr(rows = sex, fun = paste_collapse, value = freq) # pivot_list
+#> # A tibble: 2 × 2
+#>   sex    value                                         
+#>   <fct>  <chr>                                         
+#> 1 Male   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+#> 2 Female 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+flat_titanic %>% pivotr(rows = sex, value = freq, prop = TRUE) # pivot_prop
+#> # A tibble: 2 × 2
+#>   sex    value
+#>   <fct>  <dbl>
+#> 1 Male     0.5
+#> 2 Female   0.5
+flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
+#> # A tibble: 2 × 3
+#>   sex       No   Yes
+#>   <fct>  <dbl> <dbl>
+#> 1 Male    0.25  0.25
+#> 2 Female  0.25  0.25
+flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
+#> # A tibble: 2 × 3
+#>   sex       No   Yes
+#>   <fct>  <dbl> <dbl>
+#> 1 Male     0.5   0.5
+#> 2 Female   0.5   0.5
 ```
 
 -----

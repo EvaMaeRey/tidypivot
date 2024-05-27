@@ -49,7 +49,7 @@ tidytitanic::tidy_titanic %>%
 - wt, weight the value (1 if not specified)
 - fun - do an operation (on value) within group 
 
-```{r tp, eval = F}
+```{r tp, eval = T}
 #' A function that pretty much let's you do anything in the tidypivot space, is carefully crafted, and is adapted to make the other functions easy to use
 #'
 # #' @inheritParams pivot_count
@@ -197,20 +197,20 @@ pivotr <- function(data,
 
 ```{r}
 
-#' tidy_titanic %>% pivotr(rows = sex, cols = survived, fun = length) # pivot_count
-#' flat_titanic %>% pivotr(rows = sex, value = freq, fun = mean) # pivot_calc
-#' flat_titanic %>% pivotr(rows = sex, value = freq, fun = sum) # pivot_count (weighted sum)
-#' nar <- function(x) return(NA)
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, fun = nar); #pivot_null
-#' sample1 <- function(x) sample(x, 1)
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, fun = sample1, value = freq); #pivot_sam
-#' samplen <- function(x, n) paste(sample(x, 5, replace = F), collapse = ", ")
-#' # flat_titanic %>% pivotr(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_s
-#' paste_collapse <- function(x) paste (x, collapse = ", ")
-#' flat_titanic %>% pivotr(rows = sex, fun = paste_collapse, value = freq) # pivot_list
-#' flat_titanic %>% pivotr(rows = sex, value = freq, prop = TRUE) # pivot_prop
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
+tidy_titanic %>% pivotr(rows = sex, cols = survived, fun = length) # pivot_count
+flat_titanic %>% pivotr(rows = sex, value = freq, fun = mean) # pivot_calc
+flat_titanic %>% pivotr(rows = sex, value = freq, fun = sum) # pivot_count (weighted sum)
+nar <- function(x) return(NA)
+flat_titanic %>% pivotr(rows = sex, cols = survived, fun = nar); #pivot_null
+sample1 <- function(x) sample(x, 1)
+flat_titanic %>% pivotr(rows = sex, cols = survived, fun = sample1, value = freq); #pivot_sam
+samplen <- function(x, n) paste(sample(x, 5, replace = F), collapse = ", ")
+# flat_titanic %>% pivotr(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_s
+paste_collapse <- function(x) paste (x, collapse = ", ")
+flat_titanic %>% pivotr(rows = sex, fun = paste_collapse, value = freq) # pivot_list
+flat_titanic %>% pivotr(rows = sex, value = freq, prop = TRUE) # pivot_prop
+flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
+flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
 
 ```
 
