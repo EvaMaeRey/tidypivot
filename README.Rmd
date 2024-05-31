@@ -17,61 +17,74 @@ knitr::opts_chunk$set(message = F, warning = F)
 ```
 
 
-# {tidypivot} allows you to create tables by describing them
+# {tidypivot} allows you to create tables by describing them (like ggplot2 plot description/declaration)
 
 note: see original discussion here: https://evamaerey.github.io/mytidytuesday/2022-02-14-tables/tables.html and thoughtful contributions from @shannonpileggi and @brshallow https://github.com/EvaMaeRey/mytidytuesday/issues/3
 
 
+> And, you know, I'd get a dataset. And, *in my head I could very clearly kind of picture*, I want to put this on the x-axis. Let's put this on the y-axis, draw a line, put some points here, break it up by this variable.  And then, like, getting that vision out of my head, and into reality, it's just really, really hard. Just, like, felt harder than it should be. Like, there's a lot of custom programming involved, where I just felt, like, to me, I just wanted to say, like, you know, *this is what I'm thinking, this is how I'm picturing this plot. Like you're the computer 'Go and do it'.*  ... and I'd also been reading about the Grammar of Graphics by Leland Wilkinson, I got to meet him a couple of times and ... I was, like, this book has been, like, written for me.   - https://www.trifacta.com/podcast/tidy-data-with-hadley-wickham/
 
-## example
 
+# declarative table creation with ggplot2
 
 ```{r}
-library(tidyverse)
-library(tidypivot)
-options(scipen = 10)
+library(ggplot2)
+StatSum$default_aes <- aes(label = after_stat(n))
 
-ggplot2::diamonds %>% 
-  pivot_helper(rows = cut, 
-     cols = color)
+# describe layout (what you see in your head)
+tidytitanic::tidy_titanic |>
+  ggplot(aes(x = sex, y = survived))
+  
 
-tidytitanic::tidy_titanic %>% 
-  pivot_helper(rows = sex,
-               cols = survived,
-               prop = T,
-               within = sex)
+# grouping and computation happen in one step, filling in 'table'
+last_plot() + 
+  stat_sum(geom = "text")
 ```
 
-### Internals
+## Status quo table creation: Harder than it should be?
+
+
+- 1. grouping
+- 2. compute
+- 3. pivot 
+
+
+
+### pivotr function: toward declarative table generation
+
+Under the hood:
 
 - group by rows and columns
 - value in data to consider (1 if not specified)
 - wt, weight the value (1 if not specified)
 - fun - do an operation (on value) within group 
 
+But API: 
+ 
+- describe layout of table and compute
+
 ```{r tp, eval = T}
-#' A function that pretty much let's you do anything in the tidypivot space, is carefully crafted, and is adapted to make the other functions easy to use
+#' Title
 #'
-# #' @inheritParams pivot_count
+#' @param data 
+#' @param rows 
+#' @param cols 
+#' @param value 
+#' @param wt 
+#' @param fun 
+#' @param prop 
+#' @param percent 
+#' @param round 
+#' @param within 
+#' @param withinfun 
+#' @param pivot 
+#' @param wrap 
+#' @param totals_within 
 #'
 #' @return
 #' @export
 #'
 #' @examples
-#' tidy_titanic %>% pivotr(rows = sex, cols = survived, fun = length) # pivot_count
-#' flat_titanic %>% pivotr(rows = sex, value = freq, fun = mean) # pivot_calc
-#' flat_titanic %>% pivotr(rows = sex, value = freq, fun = sum) # pivot_count (weighted sum)
-#' nar <- function(x) return(NA)
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, fun = nar); #pivot_null
-#' sample1 <- function(x) sample(x, 1)
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, fun = sample1, value = freq); #pivot_sample1
-#' samplen <- function(x, n) paste(sample(x, 5, replace = F), collapse = ", ")
-#' # flat_titanic %>% pivotr(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_samplen
-#' paste_collapse <- function(x) paste (x, collapse = ", ")
-#' flat_titanic %>% pivotr(rows = sex, fun = paste_collapse, value = freq) # pivot_list
-#' flat_titanic %>% pivotr(rows = sex, value = freq, prop = TRUE) # pivot_prop
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
-#' flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
 pivotr <- function(data,
                        rows = NULL,
                        cols = NULL,
@@ -109,12 +122,12 @@ pivotr <- function(data,
     
     if(rlang::quo_is_null(value_quo) ){
 
-      data <- data %>%
+      data <- data |>
         dplyr::mutate(value = 1)
       
     }else{
       
-      data <- data %>% 
+      data <- data |> 
           dplyr::mutate(value = {{value}})
         
     }
@@ -123,20 +136,19 @@ pivotr <- function(data,
     
     if(!rlang::quo_is_null(wt_quo) ){
      
-      data <- data %>%
+      data <- data |>
         dplyr::mutate(value = value * {{wt}}) 
    }
     
     
     ### grouping by tabulation vars col and row
-    grouped <- data %>%
+    grouped <- data |>
       dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
                       .drop = FALSE)
   
     ### summarizing ####
     
-    summarized <- grouped %>%
-        dplyr::mutate(value = 1) %>%
+    summarized <- grouped |>
         dplyr::summarise(value = fun(value))
 
     # proportion case or percent
@@ -148,17 +160,17 @@ pivotr <- function(data,
       # prop is across all data
         if(rlang::quo_is_null(within_quo) ){
 
-            summarized <- summarized %>%
-              dplyr::ungroup() %>%
+            summarized <- summarized |>
+              dplyr::ungroup() |>
               dplyr::mutate(value = round(value*mult/sum(value), round))
 
         # prop is within categories specified by within variable
         }else{
 
-              summarized <- summarized %>%
-                dplyr::ungroup() %>%
+              summarized <- summarized |>
+                dplyr::ungroup() |>
                 dplyr::group_by(dplyr::across(c({{within}})),
-                                .drop = FALSE) %>%
+                                .drop = FALSE) |>
                 dplyr::mutate(value = round(value*mult/sum(value), round))
 
         }
@@ -167,7 +179,7 @@ pivotr <- function(data,
 
     arranged <- summarized
 
-    ungrouped <- arranged %>%
+    ungrouped <- arranged |>
       dplyr::ungroup()
 
     tidy <- ungrouped
@@ -177,13 +189,13 @@ pivotr <- function(data,
     if(pivot == F | rlang::quo_is_null(cols_quo)){
 
       tidy
-      # tidy %>%
+      # tidy |>
       #   dplyr::rename(count = .data$value)
 
       # otherwise pivot by columns
     }else{
 
-      tidy %>%
+      tidy |>
         tidyr::pivot_wider(names_from = {{cols}})
 
     }
@@ -192,28 +204,139 @@ pivotr <- function(data,
 
 ```
 
-
-# examples/derivitive
-
 ```{r}
 
-tidy_titanic %>% pivotr(rows = sex, cols = survived, fun = length) # pivot_count
-flat_titanic %>% pivotr(rows = sex, value = freq, fun = mean) # pivot_calc
-flat_titanic %>% pivotr(rows = sex, value = freq, fun = sum) # pivot_count (weighted sum)
-nar <- function(x) return(NA)
-flat_titanic %>% pivotr(rows = sex, cols = survived, fun = nar); #pivot_null
-sample1 <- function(x) sample(x, 1)
-flat_titanic %>% pivotr(rows = sex, cols = survived, fun = sample1, value = freq); #pivot_sam
-samplen <- function(x, n) paste(sample(x, 5, replace = F), collapse = ", ")
-# flat_titanic %>% pivotr(rows = sex, cols = survived, fun = samplen, value = freq); #pivot_s
-paste_collapse <- function(x) paste (x, collapse = ", ")
-flat_titanic %>% pivotr(rows = sex, fun = paste_collapse, value = freq) # pivot_list
-flat_titanic %>% pivotr(rows = sex, value = freq, prop = TRUE) # pivot_prop
-flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
-flat_titanic %>% pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
+
+
 
 ```
 
+
+```{r}
+library(tidytitanic)
+
+tidy_titanic |> pivotr()
+
+tidy_titanic |> pivotr(rows = sex, cols = survived)
+
+tidy_titanic |> pivotr(rows = c(sex, age), cols = survived)
+
+tidy_titanic |> pivotr(rows = sex, cols = survived, pivot = F)
+
+flat_titanic |> pivotr(rows = sex, value = freq, prop = TRUE)
+
+flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
+
+flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
+```
+
+# examples/derivative
+
+Here are some examples where you might have derivative functions
+
+```{r pivotr_countsummean}
+pivot_count <- function(...){
+
+  # maybe a wt version...
+  pivotr(fun = length, ...) 
+
+  }
+
+pivot_average <- function(...){
+  
+  pivotr(fun = mean, ...) 
+  
+}
+
+pivot_sum <- function(...){
+  
+  pivotr(fun = sum, ...)
+  
+}
+
+pivot_empty <- function(...){
+  
+nar <- function(x) return(NA)
+
+  pivotr(fun = nar, ...)
+
+}
+```
+
+
+
+
+```{r, eval = T}
+library(magrittr)
+library(tidytitanic)
+
+tidy_titanic |> pivot_count(rows = sex)
+tidy_titanic |> pivot_count(rows = sex, col = survived)
+flat_titanic |> pivot_sum(rows = survived, value = freq)
+flat_titanic |> pivot_sum(rows = sex,  cols = survived, value = freq)
+
+flat_titanic |> pivot_average(rows = sex,  cols = survived, value = freq)
+flat_titanic |> pivot_empty(rows = survived, cols = age)
+
+```
+
+
+# filling cells with examples from data.
+
+```{r}
+pivot_example <- function(...){
+
+  sample1 <- function(x) sample(x, 1)
+  pivotr(fun = sample1, ...)
+
+}
+
+
+pivot_samplen <- function(..., n = 3){
+
+  samplen <- function(x) paste(sample(x, n, replace = F), collapse = ", ")
+
+  pivotr(fun = samplen, ...) 
+
+}
+
+pivot_list <- function(...){
+
+  paste_collapse <- function(x) paste (x, collapse = ", ")
+  pivotr(fun = paste_collapse, ...) 
+  
+}
+```
+
+
+```{r, eval = T}
+flat_titanic |> pivot_example(rows = sex, value = freq)
+
+flat_titanic |> pivot_samplen(rows = sex, value = freq)
+
+flat_titanic |> pivot_list(rows = sex, cols = survived, value = freq)
+```
+
+
+## proportions helpers
+  
+```{r}  
+library(tidytitanic)
+# pivot_prop
+flat_titanic |> pivotr(rows = sex, value = freq, prop = TRUE) # pivot_prop
+flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
+flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
+
+# pivot_percent
+flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, percent = TRUE, within = sex)
+```
+
+
+
+```{r}
+knitr::knit_exit()
+
+```
 
 ---
 
@@ -241,6 +364,21 @@ Tidypivot <- R6::R6Class("Tidypivot",
                        ,
 
                        # functions
+                       # initialize = function(){
+                       #   
+                       #   self$data <- NULL
+                       #   self$rows = NULL
+                       #   self$cols = NULL
+                       #   self$fun = NULL
+                       #   self$value = NULL
+                       #   self$wt = NULL
+                       #   self$within = NULL
+                       #   self$withinfun = NULL
+                       #   self$pivot = NULL
+                       #   self$wrap = NULL
+                       #   self$out = NULL
+                       #   
+                       # },
                        update = function(data = NULL, rows = NULL, cols = NULL,
                                          fun = NULL, value = NULL, wt = NULL, pivot_logical = NULL){ # a method
 
@@ -257,21 +395,21 @@ Tidypivot <- R6::R6Class("Tidypivot",
                          # displaying
                          self$out <- 'tidypivot::pivot_helper(data, rows, cols, fun, value, wt, pivot_logical)'
 
-                         if(!is.null(self$data)) {self$out <- self$out %>% stringr::str_replace("data",  self$data)  }
-                         if(!is.null(self$rows)) {self$out <- self$out %>% stringr::str_replace("rows",  self$rows)  }
-                         if(!is.null(self$cols)) {self$out <- self$out %>% stringr::str_replace("cols",  self$cols)  }
-                         if(!is.null(self$fun))  {self$out <- self$out %>% stringr::str_replace("fun",   self$fun)   }
-                         if(!is.null(self$value)){self$out <- self$out %>% stringr::str_replace("value", self$value) }
-                         if(!is.null(self$wt))   {self$out <- self$out %>% stringr::str_replace("wt",    self$wt)    }
-                         if(!is.null(self$pivot)){self$out <- self$out %>% stringr::str_replace("pivot_logical", self$pivot) }
+                         if(!is.null(self$data)) {self$out <- self$out |> stringr::str_replace("data",  self$data)  }
+                         if(!is.null(self$rows)) {self$out <- self$out |> stringr::str_replace("rows",  self$rows)  }
+                         if(!is.null(self$cols)) {self$out <- self$out |> stringr::str_replace("cols",  self$cols)  }
+                         if(!is.null(self$fun))  {self$out <- self$out |> stringr::str_replace("fun",   self$fun)   }
+                         if(!is.null(self$value)){self$out <- self$out |> stringr::str_replace("value", self$value) }
+                         if(!is.null(self$wt))   {self$out <- self$out |> stringr::str_replace("wt",    self$wt)    }
+                         if(!is.null(self$pivot)){self$out <- self$out |> stringr::str_replace("pivot_logical", self$pivot) }
 
-                         if(is.null(self$data)) {self$out <- self$out %>% stringr::str_replace("data",  "NULL")}
-                         if(is.null(self$rows)) {self$out <- self$out %>% stringr::str_replace("rows",  "NULL")}
-                         if(is.null(self$cols)) {self$out <- self$out %>% stringr::str_replace("cols",  "NULL")}
-                         if(is.null(self$fun))  {self$out <- self$out %>% stringr::str_replace("fun",   "NULL")}
-                         if(is.null(self$value)){self$out <- self$out %>% stringr::str_replace("value", "NULL")}
-                         if(is.null(self$wt))   {self$out <- self$out %>% stringr::str_replace("wt",    "NULL")}
-                         if(is.null(self$pivot)){self$out <- self$out %>% stringr::str_replace("pivot_logical", "NULL")}
+                         if(is.null(self$data)) {self$out <- self$out |> stringr::str_replace("data",  "NULL")}
+                         if(is.null(self$rows)) {self$out <- self$out |> stringr::str_replace("rows",  "NULL")}
+                         if(is.null(self$cols)) {self$out <- self$out |> stringr::str_replace("cols",  "NULL")}
+                         if(is.null(self$fun))  {self$out <- self$out |> stringr::str_replace("fun",   "NULL")}
+                         if(is.null(self$value)){self$out <- self$out |> stringr::str_replace("value", "NULL")}
+                         if(is.null(self$wt))   {self$out <- self$out |> stringr::str_replace("wt",    "NULL")}
+                         if(is.null(self$pivot)){self$out <- self$out |> stringr::str_replace("pivot_logical", "NULL")}
 
                          invisible(self)          #returns
 
@@ -286,7 +424,17 @@ Tidypivot <- R6::R6Class("Tidypivot",
                        }
                      )
 )
+```
 
+
+```{r}
+my_tp <- Tidypivot$new()
+eval(parse(text =  my_tp$out))
+```
+
+
+
+```{r}
 
 #' Title
 #'
@@ -326,8 +474,7 @@ tp_init_pipe <- function(data = NULL, quietly = FALSE){
 
   my_tp_pipe <- Tidypivot$new()
   # my_tp <<- Tidypivot$new()
-
-
+  
   my_tp_pipe$update(data)
 
   if(!quietly){
@@ -361,10 +508,8 @@ tp_init_pipe <- function(data = NULL, quietly = FALSE){
 #'   tp_add(cols = "class")
 #'
 tp_add <- function(nothing = NULL, data = NULL, rows = NULL, cols = NULL,
-                                   fun = NULL, value = NULL, wt = NULL,
+                   fun = NULL, value = NULL, wt = NULL,
                    pivot_logical = NULL, quietly = FALSE){
-
-
 
   my_tp$update(data,
                rows,
@@ -384,8 +529,6 @@ tp_add <- function(nothing = NULL, data = NULL, rows = NULL, cols = NULL,
 tp_add_pipe <- function(nothing = NULL, data = NULL, rows = NULL, cols = NULL,
                    fun = NULL, value = NULL, wt = NULL,
                    pivot_logical = NULL, quietly = FALSE){
-
-
 
   my_tp_pipe$update(data,
                rows,
@@ -413,7 +556,7 @@ tp_add_pipe <- function(nothing = NULL, data = NULL, rows = NULL, cols = NULL,
 #' @examples
 #'   tp_init(data = "tidytitanic::tidy_titanic")
 #'
-#' set_data(data = tidytitanic::tidy_titanic) %>%
+#' set_data(data = tidytitanic::tidy_titanic) |>
 #'  set_rows(age)
 set_rows <- function(first, vars){
 
@@ -543,7 +686,7 @@ specify 3 things - start with visual layout
 - specify count type geom
 
 ```{r}
-tidy_titanic %>% 
+tidy_titanic |> 
   ggplot() + 
   aes(x = Sex, y = Survived) + 
   geom_jitter() + 
@@ -559,9 +702,9 @@ tidy_titanic %>%
 - specify visual arrangement (names from?) <- this comes last
 
 ```{r slow} 
-tidy_titanic %>% 
-  group_by(Sex, Survived) %>% 
-  summarize(count = n()) %>% 
+tidy_titanic |> 
+  group_by(Sex, Survived) |> 
+  summarize(count = n()) |> 
   pivot_wider(names_from = Survived, 
               values_from = count)
 ```
@@ -594,35 +737,35 @@ pivot_calc_script <- readLines("./R/pivot_calc.R")
 
 ```{r examples}
 # rows and cols
-tidy_titanic %>% 
+tidy_titanic |> 
   pivot_count(rows = Survived, cols = Sex) 
 
 # cols only
-tidy_titanic %>% 
+tidy_titanic |> 
    pivot_count(cols = Sex)
 
 # rows only
-tidy_titanic %>% 
+tidy_titanic |> 
   pivot_count(rows = Survived) 
 
 # two rows and col
-tidy_titanic %>% 
+tidy_titanic |> 
   pivot_count(rows = c(Survived, Class), cols = Sex)
 
 # two rows and col and contains zero counts
-tidy_titanic %>% 
+tidy_titanic |> 
   pivot_count(rows = c(Survived, Class), cols = c(Sex, Age))
 
 # two rows and col and contains zero counts
-tidy_titanic %>% 
+tidy_titanic |> 
   pivot_count(rows = c(Survived, Class), cols = c(Sex, Age), pivot = F)
 
 # count all
-tidy_titanic %>% 
+tidy_titanic |> 
    pivot_count()
 
 # for fun organize like it will appear visually in code
-tidy_titanic %>% 
+tidy_titanic |> 
   pivot_count(                          cols = Sex, 
               rows = c(Survived, Class)        )
 ```
@@ -631,7 +774,7 @@ tidy_titanic %>%
 ## After examining your table you might actually want to have the calculation in long form (for use in something like ggplot2).  This is what pivot = F is for!
 
 ```{r}
-tidy_titanic %>% 
+tidy_titanic |> 
   pivot_count(cols = Sex, rows = Survived, pivot = F)
 ```
 
@@ -639,12 +782,13 @@ tidy_titanic %>%
 
 ### just for fun arrange the code how the table will look
 
-```{r calc2}
-flat_titanic %>%
+```{r calc2, eval = F}
+library(tidytitanic)
+flat_titanic |>
   pivot_calc(              cols = Sex, 
              rows = Survived, value = Freq, fun = sum)
 
-flat_titanic %>% 
+flat_titanic |> 
   pivot_count(cols = Sex, 
              rows = Survived, wt = Freq)
 
@@ -657,17 +801,17 @@ Issue: For this case, we should probably use pivot_count and allow for a wt argu
 ### goal of functions is not to style - just to make calculation faster by using a visually driven API
 
 ```{r style}
-tidy_titanic %>%  
-  pivot_count(cols = Sex, rows = c(Survived, Class)) %>% 
-  group_by(Class) %>% 
+tidy_titanic |>  
+  pivot_count(cols = Sex, rows = c(Survived, Class)) |> 
+  group_by(Class) |> 
   gt::gt()
 ```
 
 
 ```{r style2}
-tidy_titanic %>% 
-  pivot_count(cols = Sex, rows = c(Survived, Class, Age)) %>% 
-  group_by(Age) %>% 
+tidy_titanic |> 
+  pivot_count(cols = Sex, rows = c(Survived, Class, Age)) |> 
+  group_by(Age) |> 
   gt::gt()
 ```
 
@@ -676,12 +820,12 @@ tidy_titanic %>%
 ### feels like lots of gymnastics... a vis first approach is what we are after
 
 ```{r proportionslow}
-tidy_titanic %>% 
-  group_by(Sex, Survived) %>% 
-  summarize(value = n()) %>% 
-  group_by(Sex) %>% 
-  mutate(prop = value/sum(value)) %>% 
-  select(-value) %>% 
+tidy_titanic |> 
+  group_by(Sex, Survived) |> 
+  summarize(value = n()) |> 
+  group_by(Sex) |> 
+  mutate(prop = value/sum(value)) |> 
+  select(-value) |> 
   pivot_wider(values_from = prop, names_from = Sex)
 ```
 
@@ -701,25 +845,25 @@ pivot_prop_script <- readLines("./R/pivot_prop.R")
 # Step 2b. using the pivot_prop
 
 ```{r propusage}
-tidy_titanic %>% 
+tidy_titanic |> 
   pivot_prop(rows = Survived, cols = Class, within = Class)
 
-tidy_titanic %>% 
+tidy_titanic |> 
   pivot_prop(rows = c(Survived, Sex), 
                cols = Class, 
                within = Survived)
 
-tidy_titanic %>% 
+tidy_titanic |> 
   pivot_prop(rows = c(Survived, Sex), 
                cols = Class, 
                within = c(Survived, Sex))
 ```
 
 ```{r propgraph}
-tidy_titanic %>% 
+tidy_titanic |> 
   pivot_prop(rows = c(Survived, Sex), 
                cols = Class, 
-               within = Survived, pivot = F) %>% 
+               within = Survived, pivot = F) |> 
   ggplot() +
   aes(x = Class, y = Sex) +
   facet_grid(rows = vars(Survived)) +
@@ -943,7 +1087,7 @@ pivot_helper <- function(data,
     arranged <- summarized
 
     #####  Ungrouping
-    ungrouped <- arranged %>%
+    ungrouped <- arranged |>
       dplyr::ungroup()
 
     #############  yields tidy data
@@ -958,7 +1102,7 @@ pivot_helper <- function(data,
 
       }else{
 
-      out <- tidy %>%
+      out <- tidy |>
         tidyr::pivot_wider(names_from = {{cols}})
 
       }
