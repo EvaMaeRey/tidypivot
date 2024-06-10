@@ -42,15 +42,19 @@ and thoughtful contributions from @shannonpileggi and @brshallow
 library(ggplot2)
 StatSum$default_aes <- aes(label = after_stat(n))
 
-# describe layout (what you see in your head)
+# I want to put this on the x-axis (cols)
 tidytitanic::tidy_titanic |>
-  ggplot(aes(x = sex, y = survived))
+  ggplot(
+      # I want to put this on the x-axis (cols)
+  aes(x = sex, 
+      # I want to put this on the y- axis (rows)
+      y = survived)
+  )
 ```
 
 <img src="man/figures/README-unnamed-chunk-2-1.png" width="100%" />
 
 ``` r
-  
 
 # grouping and computation happen in one step, filling in 'table'
 last_plot() + 
@@ -290,7 +294,9 @@ pivot_count <- function(...){
 
 pivot_average <- function(...){
   
-  pivotr(fun = mean, ...) 
+  mean_na_rm <- function(x){mean(x, na.rm = T)}
+  
+  pivotr(fun = mean_na_rm, ...) 
   
 }
 
@@ -312,6 +318,19 @@ nar <- function(x) return(NA)
 ``` r
 library(magrittr)
 library(tidytitanic)
+
+passengers <- readr::read_csv("https://raw.githubusercontent.com/clauswilke/dviz.supp/master/data-raw/titanic/Titanic.csv")
+
+head(passengers)
+#> # A tibble: 6 × 7
+#>    ...1 Name                                 PClass   Age Sex   Survived SexCode
+#>   <dbl> <chr>                                <chr>  <dbl> <chr>    <dbl>   <dbl>
+#> 1     1 Allen, Miss Elisabeth Walton         1st    29    fema…        1       1
+#> 2     2 Allison, Miss Helen Loraine          1st     2    fema…        0       1
+#> 3     3 Allison, Mr Hudson Joshua Creighton  1st    30    male         0       0
+#> 4     4 Allison, Mrs Hudson JC (Bessie Wald… 1st    25    fema…        0       1
+#> 5     5 Allison, Master Hudson Trevor        1st     0.92 male         1       0
+#> 6     6 Anderson, Mr Harry                   1st    47    male         1       0
 
 tidy_titanic |> pivot_count(rows = sex)
 #> # A tibble: 2 × 2
@@ -350,6 +369,18 @@ flat_titanic |> pivot_empty(rows = survived, cols = age)
 #>   <fct>    <lgl> <lgl>
 #> 1 No       NA    NA   
 #> 2 Yes      NA    NA
+
+passengers |> pivot_average(rows = c(Sex, PClass), cols = Survived, value = Age)
+#> # A tibble: 7 × 4
+#>   Sex    PClass   `0`   `1`
+#>   <chr>  <chr>  <dbl> <dbl>
+#> 1 female 1st     35.2  37.9
+#> 2 female 2nd     31.4  26.9
+#> 3 female 3rd     22.8  22.7
+#> 4 male   *      NaN    NA  
+#> 5 male   1st     44.8  34.3
+#> 6 male   2nd     31.7  14.8
+#> 7 male   3rd     27.1  22.1
 ```
 
 # filling cells with examples from data.
@@ -363,17 +394,17 @@ pivot_example <- function(...){
 }
 
 
-pivot_samplen <- function(..., n = 3){
+pivot_samplen <- function(..., n = 3, sep = "; "){
 
-  samplen <- function(x) paste(sample(x, n, replace = F), collapse = ", ")
+  samplen <- function(x) paste(sample(x, n, replace = F), collapse = sep)
 
   pivotr(fun = samplen, ...) 
 
 }
 
-pivot_list <- function(...){
+pivot_list <- function(..., sep = "; "){
 
-  paste_collapse <- function(x) paste (x, collapse = ", ")
+  paste_collapse <- function(x) paste (x, collapse = sep)
   pivotr(fun = paste_collapse, ...) 
   
 }
@@ -384,22 +415,50 @@ flat_titanic |> pivot_example(rows = sex, value = freq)
 #> # A tibble: 2 × 2
 #>   sex    value
 #>   <fct>  <dbl>
-#> 1 Male     118
+#> 1 Male       0
 #> 2 Female   140
 
 flat_titanic |> pivot_samplen(rows = sex, value = freq)
 #> # A tibble: 2 × 2
-#>   sex    value     
-#>   <fct>  <chr>     
-#> 1 Male   75, 14, 0 
-#> 2 Female 0, 14, 140
+#>   sex    value      
+#>   <fct>  <chr>      
+#> 1 Male   5; 670; 387
+#> 2 Female 13; 80; 13
 
 flat_titanic |> pivot_list(rows = sex, cols = survived, value = freq)
 #> # A tibble: 2 × 3
 #>   sex    No                              Yes                          
 #>   <fct>  <chr>                           <chr>                        
-#> 1 Male   0, 0, 35, 0, 118, 154, 387, 670 5, 11, 13, 0, 57, 14, 75, 192
-#> 2 Female 0, 0, 17, 0, 4, 13, 89, 3       1, 13, 14, 0, 140, 80, 76, 20
+#> 1 Male   0; 0; 35; 0; 118; 154; 387; 670 5; 11; 13; 0; 57; 14; 75; 192
+#> 2 Female 0; 0; 17; 0; 4; 13; 89; 3       1; 13; 14; 0; 140; 80; 76; 20
+
+set.seed(12345)
+passengers |> pivot_example(rows = Sex, value = Name)
+#> # A tibble: 2 × 2
+#>   Sex    value                        
+#>   <chr>  <chr>                        
+#> 1 female Ward, Ms Anna                
+#> 2 male   Duff Gordon, Sir Cosmo Edmund
+passengers |> pivot_samplen(rows = Sex, cols = Survived, value = Name, n = 2, sep = "; ") 
+#> # A tibble: 2 × 3
+#>   Sex    `0`                                                   `1`              
+#>   <chr>  <chr>                                                 <chr>            
+#> 1 female Vestrom, Miss Hulda Amanda Adolfina; Healy, Miss Nora Ware, Mrs John J…
+#> 2 male   Rosblom, Mr Viktor Rickard; Petroff, Mr Pentcho       Abrahamsson, Mr …
+
+passengers |> pivot_samplen(rows = Sex, cols = Survived, value = Age, n = 5) 
+#> # A tibble: 2 × 3
+#>   Sex    `0`                `1`               
+#>   <chr>  <chr>              <chr>             
+#> 1 female NA; NA; NA; 44; 20 59; 12; 13; 26; NA
+#> 2 male   20; 22; NA; 48; NA NA; NA; 0.8; 34; 1
+
+passengers |> dplyr::sample_n(20) |> pivot_list(rows = Sex, cols = Survived, value = Age)
+#> # A tibble: 2 × 3
+#>   Sex    `0`                                                `1`       
+#>   <chr>  <chr>                                              <chr>     
+#> 1 female NA; NA                                             15; NA; 45
+#> 2 male   20; 30; NA; NA; NA; NA; NA; 26; 29; 21; NA; 19; 46 19; 2
 ```
 
 ## proportions helpers

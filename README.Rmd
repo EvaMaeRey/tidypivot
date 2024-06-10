@@ -31,10 +31,14 @@ note: see original discussion here: https://evamaerey.github.io/mytidytuesday/20
 library(ggplot2)
 StatSum$default_aes <- aes(label = after_stat(n))
 
-# describe layout (what you see in your head)
+# I want to put this on the x-axis (cols)
 tidytitanic::tidy_titanic |>
-  ggplot(aes(x = sex, y = survived))
-  
+  ggplot(
+      # I want to put this on the x-axis (cols)
+  aes(x = sex, 
+      # I want to put this on the y- axis (rows)
+      y = survived)
+  )
 
 # grouping and computation happen in one step, filling in 'table'
 last_plot() + 
@@ -244,7 +248,9 @@ pivot_count <- function(...){
 
 pivot_average <- function(...){
   
-  pivotr(fun = mean, ...) 
+  mean_na_rm <- function(x){mean(x, na.rm = T)}
+  
+  pivotr(fun = mean_na_rm, ...) 
   
 }
 
@@ -270,6 +276,10 @@ nar <- function(x) return(NA)
 library(magrittr)
 library(tidytitanic)
 
+passengers <- readr::read_csv("https://raw.githubusercontent.com/clauswilke/dviz.supp/master/data-raw/titanic/Titanic.csv")
+
+head(passengers)
+
 tidy_titanic |> pivot_count(rows = sex)
 tidy_titanic |> pivot_count(rows = sex, col = survived)
 flat_titanic |> pivot_sum(rows = survived, value = freq)
@@ -277,6 +287,9 @@ flat_titanic |> pivot_sum(rows = sex,  cols = survived, value = freq)
 
 flat_titanic |> pivot_average(rows = sex,  cols = survived, value = freq)
 flat_titanic |> pivot_empty(rows = survived, cols = age)
+
+passengers |> pivot_average(rows = c(Sex, PClass), cols = Survived, value = Age)
+
 
 ```
 
@@ -292,17 +305,17 @@ pivot_example <- function(...){
 }
 
 
-pivot_samplen <- function(..., n = 3){
+pivot_samplen <- function(..., n = 3, sep = "; "){
 
-  samplen <- function(x) paste(sample(x, n, replace = F), collapse = ", ")
+  samplen <- function(x) paste(sample(x, n, replace = F), collapse = sep)
 
   pivotr(fun = samplen, ...) 
 
 }
 
-pivot_list <- function(...){
+pivot_list <- function(..., sep = "; "){
 
-  paste_collapse <- function(x) paste (x, collapse = ", ")
+  paste_collapse <- function(x) paste (x, collapse = sep)
   pivotr(fun = paste_collapse, ...) 
   
 }
@@ -315,6 +328,15 @@ flat_titanic |> pivot_example(rows = sex, value = freq)
 flat_titanic |> pivot_samplen(rows = sex, value = freq)
 
 flat_titanic |> pivot_list(rows = sex, cols = survived, value = freq)
+
+set.seed(12345)
+passengers |> pivot_example(rows = Sex, value = Name)
+passengers |> pivot_samplen(rows = Sex, cols = Survived, value = Name, n = 2, sep = "; ") 
+
+passengers |> pivot_samplen(rows = Sex, cols = Survived, value = Age, n = 5) 
+
+passengers |> dplyr::sample_n(20) |> pivot_list(rows = Sex, cols = Survived, value = Age)
+
 ```
 
 
