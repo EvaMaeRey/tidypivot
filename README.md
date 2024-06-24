@@ -109,23 +109,24 @@ But API:
 #'
 #' @examples
 pivotr <- function(data,
-                       rows = NULL,
-                       cols = NULL,
-                       value = NULL,
-                       wt = NULL,
+                   rows = NULL,
+                   cols = NULL,
+                   
+                   value = NULL,
+                   wt = NULL,
                        
-                       fun = NULL,
+                   fun = NULL,
                        
-                       prop = FALSE,
-                       percent = FALSE,
-                       round = NULL,
+                   prop = FALSE,
+                   percent = FALSE,
+                   round = NULL,
                        
-                       within = NULL,
-                       withinfun = NULL,
+                   within = NULL,
+                   withinfun = NULL,
                        
-                       pivot = NULL,
-                       wrap = NULL,
-                       totals_within = NULL
+                   pivot = NULL,
+                   wrap = NULL,
+                   totals_within = NULL
 ){
 
   
@@ -225,6 +226,181 @@ pivotr <- function(data,
 ```
 
 ``` r
+data_define_value <- function(data, value = NULL, wt = NULL){
+  
+    value_quo <- rlang::enquo(value)
+    wt_quo    <- rlang::enquo(wt)
+
+      if(rlang::quo_is_null(value_quo) ){
+
+      ## adding a value as 1 if there is none
+      data <- data |>
+        dplyr::mutate(value = 1)
+      
+    }else{
+      
+      data <- data |> 
+          dplyr::mutate(value = {{value}})
+        
+    }
+    
+    #### weighting ####
+    
+    if(!rlang::quo_is_null(wt_quo) ){
+     
+      data <- data |>
+        dplyr::mutate(value = .data$value * {{wt}}) 
+   }
+    
+    data
+  
+}
+
+
+data_to_grouped <- function(data, cols, rows){
+  
+    ### grouping by tabulation vars col and row
+    data |>
+      dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
+                      .drop = FALSE)
+  
+  
+}
+
+
+data_grouped_to_summarized <- function(data, fun = NULL){
+  
+      if(is.null(fun))  {fun <- sum}
+
+    ## adding a value as 1 if there is none
+  
+    ### summarizing ####
+    
+    data |>
+        dplyr::summarise(value = fun(.data$value))
+  
+  
+}
+
+
+data_summarized_to_proportioned <- function(data, prop = F, percent = F, within = NULL, round = 2){ 
+    # proportion case or percent
+  
+    within_quo        <- rlang::enquo(within)
+    # totals_within_quo <- rlang::enquo(totals_within)
+
+    if(is.null(prop)) {prop <- FALSE}
+
+    if(prop|percent){
+      
+      mult <- ifelse(percent, 100, 1)
+      if(is.null(round)){round <- ifelse(percent, 1, 3)}
+
+      # prop is across all data
+        if(rlang::quo_is_null(within_quo) ){
+
+            data <- data |>
+              dplyr::ungroup() |>
+              dplyr::mutate(value = round(.data$value*mult/sum(.data$value), round))
+
+        # prop is within categories specified by within variable
+        }else{
+
+              data <- data |>
+                dplyr::ungroup() |>
+                dplyr::group_by(dplyr::across(c({{within}})),
+                                .drop = FALSE) |>
+                dplyr::mutate(value = round(.data$value*mult/sum(.data$value), round))
+
+        }
+    }
+  
+  data
+
+}
+
+
+data_proportioned_to_pivoted <- function(data, pivot = T, cols = NULL){
+  
+    cols_quo  <- rlang::enquo(cols)
+    if(is.null(pivot)){pivot <- TRUE}
+
+    tidy <- data |>
+      dplyr::ungroup()
+
+    # do not pivot if argument pivot false or if no columns specified
+    if(pivot == F | rlang::quo_is_null(cols_quo)){
+
+      tidy
+
+      # otherwise pivot by columns
+    }else{
+
+      tidy |>
+        tidyr::pivot_wider(names_from = {{cols}})
+
+    }
+
+  }
+```
+
+``` r
+tidytitanic::flat_titanic |> 
+  data_define_value(value = freq) |> 
+  data_to_grouped(rows = survived, cols = sex) |>
+  data_grouped_to_summarized() |>
+  data_summarized_to_proportioned(percent = T, within = survived) |>
+  data_proportioned_to_pivoted(cols = sex)
+#> # A tibble: 2 × 3
+#>   survived  Male Female
+#>   <fct>    <dbl>  <dbl>
+#> 1 No        91.5   8.46
+#> 2 Yes       51.6  48.4
+```
+
+``` r
+
+
+  
+pivotr <- function(data,
+                   rows = NULL,
+                   cols = NULL,
+                   
+                   value = NULL,
+                   wt = NULL,
+                       
+                   fun = NULL,
+                       
+                   prop = FALSE,
+                   percent = FALSE,
+                   round = NULL,
+                       
+                   within = NULL,
+
+                   pivot = NULL
+){
+
+  
+  data |> 
+  data_define_value(value = {{value}}, wt = {{wt}}) |> 
+  data_to_grouped(rows = {{rows}}, cols = {{cols}}) |>
+  data_grouped_to_summarized(fun = fun) |>
+  data_summarized_to_proportioned(prop = prop, percent = percent, within = {{within}}, round = round) |>
+  data_proportioned_to_pivoted(pivot = pivot, cols = {{cols}})
+  
+}
+
+
+tidytitanic::flat_titanic |> 
+  pivotr(value = freq, rows = survived, cols = sex, percent = T, within = survived)
+#> # A tibble: 2 × 3
+#>   survived  Male Female
+#>   <fct>    <dbl>  <dbl>
+#> 1 No        91.5    8.5
+#> 2 Yes       51.6   48.4
+```
+
+``` r
 library(tidytitanic)
 
 tidy_titanic |> pivotr()
@@ -232,6 +408,9 @@ tidy_titanic |> pivotr()
 #>   value
 #>   <dbl>
 #> 1  2201
+```
+
+``` r
 
 tidy_titanic |> pivotr(rows = sex, cols = survived)
 #> # A tibble: 2 × 3
@@ -239,6 +418,9 @@ tidy_titanic |> pivotr(rows = sex, cols = survived)
 #>   <fct>  <dbl> <dbl>
 #> 1 Male    1364   367
 #> 2 Female   126   344
+```
+
+``` r
 
 tidy_titanic |> pivotr(rows = c(sex, age), cols = survived)
 #> # A tibble: 4 × 4
@@ -248,6 +430,9 @@ tidy_titanic |> pivotr(rows = c(sex, age), cols = survived)
 #> 2 Male   Adult  1329   338
 #> 3 Female Child    17    28
 #> 4 Female Adult   109   316
+```
+
+``` r
 
 tidy_titanic |> pivotr(rows = sex, cols = survived, pivot = F)
 #> # A tibble: 4 × 3
@@ -257,6 +442,9 @@ tidy_titanic |> pivotr(rows = sex, cols = survived, pivot = F)
 #> 2 No       Female   126
 #> 3 Yes      Male     367
 #> 4 Yes      Female   344
+```
+
+``` r
 
 flat_titanic |> pivotr(rows = sex, value = freq, prop = TRUE)
 #> # A tibble: 2 × 2
@@ -264,6 +452,9 @@ flat_titanic |> pivotr(rows = sex, value = freq, prop = TRUE)
 #>   <fct>  <dbl>
 #> 1 Male   0.786
 #> 2 Female 0.214
+```
+
+``` r
 
 flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
 #> # A tibble: 2 × 3
@@ -271,6 +462,9 @@ flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
 #>   <fct>  <dbl> <dbl>
 #> 1 Male   0.62  0.167
 #> 2 Female 0.057 0.156
+```
+
+``` r
 
 flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
 #> # A tibble: 2 × 3
@@ -331,6 +525,9 @@ head(passengers)
 #> 4     4 Allison, Mrs Hudson JC (Bessie Wald… 1st    25    fema…        0       1
 #> 5     5 Allison, Master Hudson Trevor        1st     0.92 male         1       0
 #> 6     6 Anderson, Mr Harry                   1st    47    male         1       0
+```
+
+``` r
 
 tidy_titanic |> pivot_count(rows = sex)
 #> # A tibble: 2 × 2
@@ -338,24 +535,36 @@ tidy_titanic |> pivot_count(rows = sex)
 #>   <fct>  <int>
 #> 1 Male    1731
 #> 2 Female   470
+```
+
+``` r
 tidy_titanic |> pivot_count(rows = sex, col = survived)
 #> # A tibble: 2 × 3
 #>   sex       No   Yes
 #>   <fct>  <int> <int>
 #> 1 Male    1364   367
 #> 2 Female   126   344
+```
+
+``` r
 flat_titanic |> pivot_sum(rows = survived, value = freq)
 #> # A tibble: 2 × 2
 #>   survived value
 #>   <fct>    <dbl>
 #> 1 No        1490
 #> 2 Yes        711
+```
+
+``` r
 flat_titanic |> pivot_sum(rows = sex,  cols = survived, value = freq)
 #> # A tibble: 2 × 3
 #>   sex       No   Yes
 #>   <fct>  <dbl> <dbl>
 #> 1 Male    1364   367
 #> 2 Female   126   344
+```
+
+``` r
 
 flat_titanic |> pivot_average(rows = sex,  cols = survived, value = freq)
 #> # A tibble: 2 × 3
@@ -363,12 +572,18 @@ flat_titanic |> pivot_average(rows = sex,  cols = survived, value = freq)
 #>   <fct>  <dbl> <dbl>
 #> 1 Male   170.   45.9
 #> 2 Female  15.8  43
+```
+
+``` r
 flat_titanic |> pivot_empty(rows = survived, cols = age)
 #> # A tibble: 2 × 3
 #>   survived Child Adult
 #>   <fct>    <lgl> <lgl>
 #> 1 No       NA    NA   
 #> 2 Yes      NA    NA
+```
+
+``` r
 
 passengers |> pivot_average(rows = c(Sex, PClass), cols = Survived, value = Age)
 #> # A tibble: 7 × 4
@@ -415,15 +630,21 @@ flat_titanic |> pivot_example(rows = sex, value = freq)
 #> # A tibble: 2 × 2
 #>   sex    value
 #>   <fct>  <dbl>
-#> 1 Male       0
+#> 1 Male      13
 #> 2 Female   140
+```
+
+``` r
 
 flat_titanic |> pivot_samplen(rows = sex, value = freq)
 #> # A tibble: 2 × 2
-#>   sex    value      
-#>   <fct>  <chr>      
-#> 1 Male   5; 670; 387
-#> 2 Female 13; 80; 13
+#>   sex    value    
+#>   <fct>  <chr>    
+#> 1 Male   35; 0; 57
+#> 2 Female 1; 0; 4
+```
+
+``` r
 
 flat_titanic |> pivot_list(rows = sex, cols = survived, value = freq)
 #> # A tibble: 2 × 3
@@ -431,34 +652,46 @@ flat_titanic |> pivot_list(rows = sex, cols = survived, value = freq)
 #>   <fct>  <chr>                           <chr>                        
 #> 1 Male   0; 0; 35; 0; 118; 154; 387; 670 5; 11; 13; 0; 57; 14; 75; 192
 #> 2 Female 0; 0; 17; 0; 4; 13; 89; 3       1; 13; 14; 0; 140; 80; 76; 20
+```
+
+``` r
 
 set.seed(12345)
-passengers |> pivot_example(rows = Sex, value = Name)
-#> # A tibble: 2 × 2
-#>   Sex    value                        
-#>   <chr>  <chr>                        
-#> 1 female Ward, Ms Anna                
-#> 2 male   Duff Gordon, Sir Cosmo Edmund
-passengers |> pivot_samplen(rows = Sex, cols = Survived, value = Name, n = 2, sep = "; ") 
+passengers |> pivot_example(rows = Survived, cols = Sex, value = Name)
 #> # A tibble: 2 × 3
-#>   Sex    `0`                                                   `1`              
-#>   <chr>  <chr>                                                 <chr>            
-#> 1 female Vestrom, Miss Hulda Amanda Adolfina; Healy, Miss Nora Ware, Mrs John J…
-#> 2 male   Rosblom, Mr Viktor Rickard; Petroff, Mr Pentcho       Abrahamsson, Mr …
+#>   Survived female                     male                          
+#>      <dbl> <chr>                      <chr>                         
+#> 1        0 Solvang, Mrs Lena Jacobsen Meyer, Mr August              
+#> 2        1 Gibson, Miss Dorothy       Williams, Mr Richard Norris II
+```
 
-passengers |> pivot_samplen(rows = Sex, cols = Survived, value = Age, n = 5) 
+``` r
+passengers |> pivot_samplen(rows = Survived, cols = Sex, value = Name, n = 2, sep = "; ") 
 #> # A tibble: 2 × 3
-#>   Sex    `0`                `1`               
-#>   <chr>  <chr>              <chr>             
-#> 1 female NA; NA; NA; 44; 20 59; 12; 13; 26; NA
-#> 2 male   20; 22; NA; 48; NA NA; NA; 0.8; 34; 1
+#>   Survived female                                                          male 
+#>      <dbl> <chr>                                                           <chr>
+#> 1        0 McGowan, Miss Katherine; Klasen, Miss Gertrud Emilia            Smar…
+#> 2        1 Ware, Mrs John James (Florence Louise Long); Dyker, Mrs Adolf … Mock…
+```
+
+``` r
+
+passengers |> pivot_samplen(rows = Survived, cols = Sex, value = Age, n = 7) 
+#> # A tibble: 2 × 3
+#>   Survived female                    male                      
+#>      <dbl> <chr>                     <chr>                     
+#> 1        0 NA; 44; 20; NA; 18; 2; NA NA; NA; 28; NA; 19; NA; NA
+#> 2        1 22; 5; 59; 12; 13; 26; NA 32; 9; 35; 60; NA; NA; NA
+```
+
+``` r
 
 passengers |> dplyr::sample_n(20) |> pivot_list(rows = Sex, cols = Survived, value = Age)
 #> # A tibble: 2 × 3
 #>   Sex    `0`                                                `1`       
 #>   <chr>  <chr>                                              <chr>     
-#> 1 female NA; NA                                             15; NA; 45
-#> 2 male   20; 30; NA; NA; NA; NA; NA; 26; 29; 21; NA; 19; 46 19; 2
+#> 1 female NA; 30                                             NA; 45; 22
+#> 2 male   NA; 24; 26; 29; 21; 29; 19; 46; 54; NA; 21; 22; NA 19; 2
 ```
 
 ## proportions helpers
@@ -472,18 +705,27 @@ flat_titanic |> pivotr(rows = sex, value = freq, prop = TRUE) # pivot_prop
 #>   <fct>  <dbl>
 #> 1 Male   0.786
 #> 2 Female 0.214
+```
+
+``` r
 flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
 #> # A tibble: 2 × 3
 #>   sex       No   Yes
 #>   <fct>  <dbl> <dbl>
 #> 1 Male   0.62  0.167
 #> 2 Female 0.057 0.156
+```
+
+``` r
 flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
 #> # A tibble: 2 × 3
 #>   sex       No   Yes
 #>   <fct>  <dbl> <dbl>
 #> 1 Male   0.788 0.212
 #> 2 Female 0.268 0.732
+```
+
+``` r
 
 # pivot_percent
 flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, percent = TRUE, within = sex)
