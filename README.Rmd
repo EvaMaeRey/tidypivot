@@ -67,7 +67,7 @@ But API:
  
 - describe layout of table and compute
 
-```{r tp, eval = T}
+```{r oldtp, eval = T}
 #' Title
 #'
 #' @param data 
@@ -209,7 +209,17 @@ pivotr <- function(data,
 
 ```
 
-```{r}
+```{r helpers}
+# data_slice <- function(data, filter = NULL){
+#   
+#   value_quo <- rlang::enquo(value)
+#   
+#   if()
+#   data %>% 
+#     filter(filter)
+#   
+# }
+
 data_define_value <- function(data, value = NULL, wt = NULL){
   
     value_quo <- rlang::enquo(value)
@@ -340,10 +350,7 @@ tidytitanic::flat_titanic |>
 ```
 
 
-```{r}
-
-
-  
+```{r pivotr}
 pivotr <- function(data,
                    rows = NULL,
                    cols = NULL,
@@ -372,14 +379,15 @@ pivotr <- function(data,
   
 }
 
+```
+
+
+```{r}
 
 tidytitanic::flat_titanic |> 
   pivotr(value = freq, rows = survived, cols = sex, percent = T, within = survived)
 
 ```
-
-
-
 
 
 ```{r}
@@ -511,13 +519,252 @@ passengers |> dplyr::sample_n(20) |> pivot_list(rows = Sex, cols = Survived, val
 ```{r}  
 library(tidytitanic)
 # pivot_prop
-flat_titanic |> pivotr(rows = sex, value = freq, prop = TRUE) # pivot_prop
-flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
-flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
+flat_titanic |> pivotr(rows = sex, 
+                       value = freq, 
+                       prop = TRUE) # pivot_prop
+
+flat_titanic |> 
+  pivotr(rows = sex, cols = survived, 
+         value = freq, prop = TRUE)
+
+flat_titanic |> 
+  pivotr(rows = sex, cols = survived, 
+         value = freq, prop = TRUE, within = sex)
 
 # pivot_percent
-flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, percent = TRUE, within = sex)
+flat_titanic |> 
+  pivotr(rows = sex, cols = survived, 
+         value = freq, percent = TRUE, within = sex)
 ```
+
+# toward a piped workflow 
+
+https://evamaerey.github.io/mytidytuesday/2024-07-02-s3-tables/s3-tables-tidypivot.html
+
+```{r piping}
+new_tidypivot <- function(data = data.frame(),
+                          rows = NULL,
+                          columns = NULL,
+                          value = NULL,
+                          wt = NULL) {
+
+  # table specification components !
+  tp <- list(
+    data = data,
+    rows = rows,
+    columns = columns,
+    value = value,
+    wt = wt
+    # more 'slots' to be added
+  )
+
+  # declare class 'tidypivot'
+  class(tp) <- "tidypivot"
+
+  # Return the created object
+  invisible(tp)
+
+}
+
+
+return_specified_table = function(tp){
+
+      out <- 'tidypivot::pivot_helper(thedata, rows, cols, value, wt, fun)'
+
+      str_replace_or_null <- function(x, pattern, replacement){
+        
+        if(is.null(replacement)){x |> str_replace(pattern, 'NULL')}
+        else{x |> str_replace(pattern, replacement)}
+        
+      }
+      
+      out <- str_replace_or_null(out, "rows",  tp$rows)
+      out <- str_replace_or_null(out, "cols",  tp$cols)
+      out <- str_replace_or_null(out, "value",  tp$value)
+      out <- str_replace_or_null(out, "wt",  tp$wt)
+      out <- str_replace_or_null(out, "fun",  tp$fun)
+
+      
+      eval(parse(text = out))         
+      
+}
+
+
+print.tidypivot <- function(tp){
+  
+  print(return_specified_table(tp))
+  invisible(tp)
+  
+}
+
+#' @export
+ggtable <- function(data){
+  
+  thedata <<- data # don't love this
+
+  tp <- new_tidypivot(deparse(substitute(thedata)))
+  
+  last_tp <<- tp
+  
+  tp
+
+}
+
+#' @export
+set_rows <- function(tp, rows = NULL){
+  
+  tp$rows <- deparse(substitute(rows))
+  
+  last_tp <<- tp
+  
+  tp
+
+  
+}
+
+#' @export
+set_cols <- function(tp, cols = NULL){
+  
+tp$cols <- deparse(substitute(cols))
+
+  tp
+  
+  last_tp <<- tp
+  
+  tp
+  
+}
+
+#' @export
+set_fun <- function(tp, fun = sum){
+
+tp$fun <- deparse(substitute(fun))
+
+  last_tp <<- tp
+
+  tp
+  
+}
+
+
+#' @export
+set_value <- function(tp, value = NULL){
+  
+tp$value <- deparse(substitute(value))
+
+  last_tp <<- tp
+  
+  tp
+  
+}
+
+
+#' @export
+set_wt <- function(tp, wt = NULL){
+  
+tp$wt <- deparse(substitute(wt))
+
+  last_tp <<- tp
+  
+  tp
+  
+}
+
+
+#' @export
+set_weight <- function(tp, weight = NULL){
+  
+tp$weight <- deparse(substitute(weight))
+
+  print(tp)
+  
+  last_tp <<- tp
+  
+}
+
+
+#' @export
+unpivot <- function(tp){
+  
+  tp$pivot <- FALSE
+
+  print(tp)
+  
+  last_tp <<- tp
+  
+  
+}
+
+
+
+#' @export
+last_table <- function(){
+  
+  last_tp
+  
+}
+```
+
+
+
+
+
+```{r}
+# knitrExtra::chunk_names_get()
+
+knitrExtra::chunk_to_dir("helpers")
+knitrExtra::chunk_to_dir("pivotr")
+knitrExtra::chunk_to_dir("piping")
+
+```
+
+
+```{r}
+library(tidyverse)
+library(tidypivot)
+ext_exports <- read_csv("https://raw.githubusercontent.com/EvaMaeRey/mytidytuesday/refs/heads/main/2024-11-19-gg-prefixes/exported_funs_exts_ggplot2_tidyverse_org.csv") %>% 
+  mutate(prefix = str_extract(fun_exported, ".*?_")) %>% 
+  mutate(prefix_long = str_extract(fun_exported, ".+_")) %>% 
+  mutate(ind_classic_prefix = prefix %in% c("stat_", "geom_", "theme_", "scale_", "coord_", "facet_"))
+
+
+ggtable(ext_exports)
+
+ggtable(ext_exports %>% filter(ind_classic_prefix))
+
+last_table() |>
+  set_rows(user) 
+
+last_table() |>
+  set_cols(prefix)
+
+last_table() |>
+  set_rows(c(user, repo))
+
+
+read_csv("https://raw.githubusercontent.com/EvaMaeRey/mytidytuesday/refs/heads/main/2024-12-10-ggplot2-layer-composition/ggplot2_exported_layer_fun_composition.csv") %>% 
+  rename(prefix = fun_prefix) ->
+ggplot2_layers_definers
+
+ggplot2_layers_definers |>
+  ggtable()
+
+last_table() |>
+  set_rows(type)
+
+last_table() |>
+  set_rows(type) |>
+  set_cols(default_or_fixed) |>
+  set_rows(c(prefix, type))
+```
+
+
+```{r, eval = F}
+devtools::check()
+devtools::install(pkg = ".", upgrade = "never") 
+```
+
+
 
 
 

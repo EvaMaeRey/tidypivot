@@ -1,17 +1,18 @@
 
-  - [{tidypivot} allows you to create tables by describing them (like
-    ggplot2 plot
-    description/declaration)](#tidypivot-allows-you-to-create-tables-by-describing-them-like-ggplot2-plot-descriptiondeclaration)
-  - [declarative table creation with
-    ggplot2](#declarative-table-creation-with-ggplot2)
-      - [Status quo table creation: Harder than it should
-        be?](#status-quo-table-creation-harder-than-it-should-be)
-          - [pivotr function: toward declarative table
-            generation](#pivotr-function-toward-declarative-table-generation)
-  - [examples/derivative](#examplesderivative)
-  - [filling cells with examples from
-    data.](#filling-cells-with-examples-from-data)
-      - [proportions helpers](#proportions-helpers)
+- [{tidypivot} allows you to create tables by describing them (like
+  ggplot2 plot
+  description/declaration)](#tidypivot-allows-you-to-create-tables-by-describing-them-like-ggplot2-plot-descriptiondeclaration)
+- [declarative table creation with
+  ggplot2](#declarative-table-creation-with-ggplot2)
+  - [Status quo table creation: Harder than it should
+    be?](#status-quo-table-creation-harder-than-it-should-be)
+    - [pivotr function: toward declarative table
+      generation](#pivotr-function-toward-declarative-table-generation)
+- [examples/derivative](#examplesderivative)
+- [filling cells with examples from
+  data.](#filling-cells-with-examples-from-data)
+  - [proportions helpers](#proportions-helpers)
+- [toward a piped workflow](#toward-a-piped-workflow)
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
@@ -65,26 +66,22 @@ last_plot() +
 
 ## Status quo table creation: Harder than it should be?
 
-  - 1.  grouping
-
-  - 2.  compute
-
-  - 3.  pivot
+- 1.  grouping
+- 2.  compute
+- 3.  pivot
 
 ### pivotr function: toward declarative table generation
 
 Under the hood:
 
-  - group by rows and columns
-  - value in data to consider (1 if not specified)
-  - wt, weight the value (1 if not specified)
-  - fun - do an operation (on value) within group
+- group by rows and columns
+- value in data to consider (1 if not specified)
+- wt, weight the value (1 if not specified)
+- fun - do an operation (on value) within group
 
 But API:
 
-  - describe layout of table and compute
-
-<!-- end list -->
+- describe layout of table and compute
 
 ``` r
 #' Title
@@ -226,6 +223,16 @@ pivotr <- function(data,
 ```
 
 ``` r
+# data_slice <- function(data, filter = NULL){
+#   
+#   value_quo <- rlang::enquo(value)
+#   
+#   if()
+#   data %>% 
+#     filter(filter)
+#   
+# }
+
 data_define_value <- function(data, value = NULL, wt = NULL){
   
     value_quo <- rlang::enquo(value)
@@ -359,9 +366,6 @@ tidytitanic::flat_titanic |>
 ```
 
 ``` r
-
-
-  
 pivotr <- function(data,
                    rows = NULL,
                    cols = NULL,
@@ -389,7 +393,9 @@ pivotr <- function(data,
   data_proportioned_to_pivoted(pivot = pivot, cols = {{cols}})
   
 }
+```
 
+``` r
 
 tidytitanic::flat_titanic |> 
   pivotr(value = freq, rows = survived, cols = sex, percent = T, within = survived)
@@ -630,8 +636,8 @@ flat_titanic |> pivot_example(rows = sex, value = freq)
 #> # A tibble: 2 × 2
 #>   sex    value
 #>   <fct>  <dbl>
-#> 1 Male      13
-#> 2 Female   140
+#> 1 Male     387
+#> 2 Female     3
 ```
 
 ``` r
@@ -640,8 +646,8 @@ flat_titanic |> pivot_samplen(rows = sex, value = freq)
 #> # A tibble: 2 × 2
 #>   sex    value    
 #>   <fct>  <chr>    
-#> 1 Male   35; 0; 57
-#> 2 Female 1; 0; 4
+#> 1 Male   5; 35; 57
+#> 2 Female 17; 0; 20
 ```
 
 ``` r
@@ -699,7 +705,9 @@ passengers |> dplyr::sample_n(20) |> pivot_list(rows = Sex, cols = Survived, val
 ``` r
 library(tidytitanic)
 # pivot_prop
-flat_titanic |> pivotr(rows = sex, value = freq, prop = TRUE) # pivot_prop
+flat_titanic |> pivotr(rows = sex, 
+                       value = freq, 
+                       prop = TRUE) # pivot_prop
 #> # A tibble: 2 × 2
 #>   sex    value
 #>   <fct>  <dbl>
@@ -708,7 +716,10 @@ flat_titanic |> pivotr(rows = sex, value = freq, prop = TRUE) # pivot_prop
 ```
 
 ``` r
-flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
+
+flat_titanic |> 
+  pivotr(rows = sex, cols = survived, 
+         value = freq, prop = TRUE)
 #> # A tibble: 2 × 3
 #>   sex       No   Yes
 #>   <fct>  <dbl> <dbl>
@@ -717,7 +728,10 @@ flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE)
 ```
 
 ``` r
-flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, within = sex)
+
+flat_titanic |> 
+  pivotr(rows = sex, cols = survived, 
+         value = freq, prop = TRUE, within = sex)
 #> # A tibble: 2 × 3
 #>   sex       No   Yes
 #>   <fct>  <dbl> <dbl>
@@ -728,12 +742,324 @@ flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, w
 ``` r
 
 # pivot_percent
-flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, percent = TRUE, within = sex)
+flat_titanic |> 
+  pivotr(rows = sex, cols = survived, 
+         value = freq, percent = TRUE, within = sex)
 #> # A tibble: 2 × 3
 #>   sex       No   Yes
 #>   <fct>  <dbl> <dbl>
 #> 1 Male    78.8  21.2
 #> 2 Female  26.8  73.2
+```
+
+# toward a piped workflow
+
+<https://evamaerey.github.io/mytidytuesday/2024-07-02-s3-tables/s3-tables-tidypivot.html>
+
+``` r
+new_tidypivot <- function(data = data.frame(),
+                          rows = NULL,
+                          columns = NULL,
+                          value = NULL,
+                          wt = NULL) {
+
+  # table specification components !
+  tp <- list(
+    data = data,
+    rows = rows,
+    columns = columns,
+    value = value,
+    wt = wt
+    # more 'slots' to be added
+  )
+
+  # declare class 'tidypivot'
+  class(tp) <- "tidypivot"
+
+  # Return the created object
+  invisible(tp)
+
+}
+
+
+return_specified_table = function(tp){
+
+      out <- 'tidypivot::pivot_helper(thedata, rows, cols, value, wt, fun)'
+
+      str_replace_or_null <- function(x, pattern, replacement){
+        
+        if(is.null(replacement)){x |> str_replace(pattern, 'NULL')}
+        else{x |> str_replace(pattern, replacement)}
+        
+      }
+      
+      out <- str_replace_or_null(out, "rows",  tp$rows)
+      out <- str_replace_or_null(out, "cols",  tp$cols)
+      out <- str_replace_or_null(out, "value",  tp$value)
+      out <- str_replace_or_null(out, "wt",  tp$wt)
+      out <- str_replace_or_null(out, "fun",  tp$fun)
+
+      
+      eval(parse(text = out))         
+      
+}
+
+
+print.tidypivot <- function(tp){
+  
+  print(return_specified_table(tp))
+  invisible(tp)
+  
+}
+
+#' @export
+ggtable <- function(data){
+  
+  thedata <<- data # don't love this
+
+  tp <- new_tidypivot(deparse(substitute(thedata)))
+  
+  last_tp <<- tp
+  
+  tp
+
+}
+
+#' @export
+set_rows <- function(tp, rows = NULL){
+  
+  tp$rows <- deparse(substitute(rows))
+  
+  last_tp <<- tp
+  
+  tp
+
+  
+}
+
+#' @export
+set_cols <- function(tp, cols = NULL){
+  
+tp$cols <- deparse(substitute(cols))
+
+  tp
+  
+  last_tp <<- tp
+  
+  tp
+  
+}
+
+#' @export
+set_fun <- function(tp, fun = sum){
+
+tp$fun <- deparse(substitute(fun))
+
+  last_tp <<- tp
+
+  tp
+  
+}
+
+
+#' @export
+set_value <- function(tp, value = NULL){
+  
+tp$value <- deparse(substitute(value))
+
+  last_tp <<- tp
+  
+  tp
+  
+}
+
+
+#' @export
+set_wt <- function(tp, wt = NULL){
+  
+tp$wt <- deparse(substitute(wt))
+
+  last_tp <<- tp
+  
+  tp
+  
+}
+
+
+#' @export
+set_weight <- function(tp, weight = NULL){
+  
+tp$weight <- deparse(substitute(weight))
+
+  print(tp)
+  
+  last_tp <<- tp
+  
+}
+
+
+#' @export
+unpivot <- function(tp){
+  
+  tp$pivot <- FALSE
+
+  print(tp)
+  
+  last_tp <<- tp
+  
+  
+}
+
+
+
+#' @export
+last_table <- function(){
+  
+  last_tp
+  
+}
+```
+
+``` r
+# knitrExtra::chunk_names_get()
+
+knitrExtra::chunk_to_dir("helpers")
+knitrExtra::chunk_to_dir("pivotr")
+knitrExtra::chunk_to_dir("piping")
+```
+
+``` r
+library(tidyverse)
+library(tidypivot)
+ext_exports <- read_csv("https://raw.githubusercontent.com/EvaMaeRey/mytidytuesday/refs/heads/main/2024-11-19-gg-prefixes/exported_funs_exts_ggplot2_tidyverse_org.csv") %>% 
+  mutate(prefix = str_extract(fun_exported, ".*?_")) %>% 
+  mutate(prefix_long = str_extract(fun_exported, ".+_")) %>% 
+  mutate(ind_classic_prefix = prefix %in% c("stat_", "geom_", "theme_", "scale_", "coord_", "facet_"))
+
+
+ggtable(ext_exports)
+#> # A tibble: 1 × 1
+#>   value
+#>   <dbl>
+#> 1  5527
+```
+
+``` r
+
+ggtable(ext_exports %>% filter(ind_classic_prefix))
+#> # A tibble: 1 × 1
+#>   value
+#>   <dbl>
+#> 1  1992
+```
+
+``` r
+
+last_table() |>
+  set_rows(user) 
+#> # A tibble: 86 × 2
+#>    user                 value
+#>    <chr>                <dbl>
+#>  1 AckerDWM                 2
+#>  2 AllanCameron            32
+#>  3 Ather-Energy             6
+#>  4 IndrajeetPatil           1
+#>  5 LCBC-UiO                34
+#>  6 LKremer                  1
+#>  7 ProjectMOSAIC            8
+#>  8 PursuitOfDataScience     4
+#>  9 Ryo-N7                  54
+#> 10 Selbosh                  7
+#> # ℹ 76 more rows
+```
+
+``` r
+
+last_table() |>
+  set_cols(prefix)
+#> # A tibble: 86 × 7
+#>    user          coord_ facet_ geom_ scale_ stat_ theme_
+#>    <chr>          <dbl>  <dbl> <dbl>  <dbl> <dbl>  <dbl>
+#>  1 AllanCameron       1     NA    24      6     1     NA
+#>  2 cidm-ph            1     NA     4     NA     2     NA
+#>  3 davidchall         1     NA     1     NA     1      2
+#>  4 easystats          1     NA    14     78    NA      6
+#>  5 hrbrmstr           1     NA    11     10     6      9
+#>  6 stefanedwards      5      2     3      2    NA     NA
+#>  7 teunbrand          2      5    11     47     7      1
+#>  8 davidgohel        NA      2    50     94    NA     NA
+#>  9 earowang          NA      1     1     NA     1     NA
+#> 10 erocoar           NA      1    12     NA     5     NA
+#> # ℹ 76 more rows
+```
+
+``` r
+
+last_table() |>
+  set_rows(c(user, repo))
+#> # A tibble: 101 × 8
+#>    user          repo         coord_ facet_ geom_ scale_ stat_ theme_
+#>    <chr>         <chr>         <dbl>  <dbl> <dbl>  <dbl> <dbl>  <dbl>
+#>  1 AllanCameron  geomtextpath      1     NA    24      6     1     NA
+#>  2 cidm-ph       ggmapinset        1     NA     4     NA     2     NA
+#>  3 davidchall    ggip              1     NA     1     NA     1      2
+#>  4 easystats     see               1     NA    14     78    NA      6
+#>  5 hrbrmstr      ggalt             1     NA    11     NA     6     NA
+#>  6 stefanedwards lemon             5      2     3      2    NA     NA
+#>  7 teunbrand     ggh4x             1      5     7      9     7     NA
+#>  8 teunbrand     legendry          1     NA    NA     NA    NA      1
+#>  9 davidgohel    ggiraph          NA      2    50     94    NA     NA
+#> 10 earowang      sugrrants        NA      1     1     NA     1     NA
+#> # ℹ 91 more rows
+```
+
+``` r
+
+
+read_csv("https://raw.githubusercontent.com/EvaMaeRey/mytidytuesday/refs/heads/main/2024-12-10-ggplot2-layer-composition/ggplot2_exported_layer_fun_composition.csv") %>% 
+  rename(prefix = fun_prefix) ->
+ggplot2_layers_definers
+
+ggplot2_layers_definers |>
+  ggtable()
+#> # A tibble: 1 × 1
+#>   value
+#>   <dbl>
+#> 1   254
+```
+
+``` r
+
+last_table() |>
+  set_rows(type)
+#> # A tibble: 3 × 2
+#>   type     value
+#>   <chr>    <dbl>
+#> 1 geom        84
+#> 2 position    85
+#> 3 stat        85
+```
+
+``` r
+
+last_table() |>
+  set_rows(type) |>
+  set_cols(default_or_fixed) |>
+  set_rows(c(prefix, type))
+#> # A tibble: 6 × 4
+#>   prefix type     default fixed
+#>   <chr>  <chr>      <dbl> <dbl>
+#> 1 geom_  geom           2    50
+#> 2 geom_  position      51     2
+#> 3 geom_  stat          47     6
+#> 4 stat_  geom          32    NA
+#> 5 stat_  position      32    NA
+#> 6 stat_  stat          NA    32
+```
+
+``` r
+devtools::check()
+devtools::install(pkg = ".", upgrade = "never") 
 ```
 
 ``` r
