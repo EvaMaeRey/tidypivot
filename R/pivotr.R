@@ -2,6 +2,9 @@ pivotr <- function(data,
                    rows = NULL,
                    cols = NULL,
                    
+                   filter = NULL,
+                   .by = NULL,
+                   
                    value = NULL,
                    wt = NULL,
                        
@@ -16,8 +19,17 @@ pivotr <- function(data,
                    pivot = NULL
 ){
 
-  
+
+  filter_quo  <- rlang::enquo(filter)
+
+  if(!rlang::quo_is_null(filter_quo) ){
   data |> 
+  dplyr::filter({{filter}}, .by = {{.by}}
+                ) ->
+data    
+  }
+
+  data |>
   data_define_value(value = {{value}}, wt = {{wt}}) |> 
   data_to_grouped(rows = {{rows}}, cols = {{cols}}) |>
   data_grouped_to_summarized(fun = fun) |>

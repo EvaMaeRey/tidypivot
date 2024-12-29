@@ -114,6 +114,9 @@ pivotr <- function(data,
                        
                    fun = NULL,
                        
+                   filter = NULL,
+                   .by = NULL,
+                   
                    prop = FALSE,
                    percent = FALSE,
                    round = NULL,
@@ -129,6 +132,7 @@ pivotr <- function(data,
   
     cols_quo          <- rlang::enquo(cols)
     value_quo         <- rlang::enquo(value)
+    filter_quo        <- rlang::enquo(filter) 
     wt_quo            <- rlang::enquo(wt)
     within_quo        <- rlang::enquo(within)
     totals_within_quo <- rlang::enquo(totals_within)
@@ -136,9 +140,15 @@ pivotr <- function(data,
     if(is.null(prop)) {prop <- FALSE}
     if(is.null(pivot)){pivot <- TRUE}
     if(is.null(wrap)) {wrap <- FALSE}
-
     if(is.null(fun))  {fun <- sum}
 
+    
+    if(!rlang::quo_is_null(filter_quo) ){
+
+      data <- data %>% filter({{filter}}, {{.by}})
+
+    }
+    
     ## adding a value as 1 if there is none
     
     if(rlang::quo_is_null(value_quo) ){
@@ -232,6 +242,9 @@ pivotr <- function(data,
 #     filter(filter)
 #   
 # }
+
+
+
 
 data_define_value <- function(data, value = NULL, wt = NULL){
   
@@ -348,27 +361,31 @@ data_proportioned_to_pivoted <- function(data, pivot = T, cols = NULL){
 
     }
 
-  }
+}
 ```
 
 ``` r
 tidytitanic::flat_titanic |> 
+  dplyr::filter(sex != "Female", .by = NULL) |>
   data_define_value(value = freq) |> 
   data_to_grouped(rows = survived, cols = sex) |>
   data_grouped_to_summarized() |>
-  data_summarized_to_proportioned(percent = T, within = survived) |>
+  data_summarized_to_proportioned(percent = T, within = sex) |>
   data_proportioned_to_pivoted(cols = sex)
 #> # A tibble: 2 × 3
 #>   survived  Male Female
 #>   <fct>    <dbl>  <dbl>
-#> 1 No        91.5   8.46
-#> 2 Yes       51.6  48.4
+#> 1 No        78.8    NaN
+#> 2 Yes       21.2    NaN
 ```
 
 ``` r
 pivotr <- function(data,
                    rows = NULL,
                    cols = NULL,
+                   
+                   filter = NULL,
+                   .by = NULL,
                    
                    value = NULL,
                    wt = NULL,
@@ -384,8 +401,17 @@ pivotr <- function(data,
                    pivot = NULL
 ){
 
-  
+
+  filter_quo  <- rlang::enquo(filter)
+
+  if(!rlang::quo_is_null(filter_quo) ){
   data |> 
+  dplyr::filter({{filter}}, .by = {{.by}}
+                ) ->
+data    
+  }
+
+  data |>
   data_define_value(value = {{value}}, wt = {{wt}}) |> 
   data_to_grouped(rows = {{rows}}, cols = {{cols}}) |>
   data_grouped_to_summarized(fun = fun) |>
@@ -396,7 +422,7 @@ pivotr <- function(data,
 ```
 
 ``` r
-
+library(dplyr)
 tidytitanic::flat_titanic |> 
   pivotr(value = freq, rows = survived, cols = sex, percent = T, within = survived)
 #> # A tibble: 2 × 3
@@ -404,6 +430,62 @@ tidytitanic::flat_titanic |>
 #>   <fct>    <dbl>  <dbl>
 #> 1 No        91.5    8.5
 #> 2 Yes       51.6   48.4
+```
+
+``` r
+
+tidytitanic::flat_titanic |> 
+  pivotr(value = freq, rows = survived, cols = sex, percent = T, within = sex, filter = sex == "Male")
+#> # A tibble: 2 × 3
+#>   survived  Male Female
+#>   <fct>    <dbl>  <dbl>
+#> 1 No        78.8    NaN
+#> 2 Yes       21.2    NaN
+```
+
+``` r
+
+tidytitanic::tidy_titanic |> 
+  pivotr(filter = age == "Child", rows = survived, cols = sex) 
+#> # A tibble: 2 × 3
+#>   survived  Male Female
+#>   <fct>    <dbl>  <dbl>
+#> 1 No          35     17
+#> 2 Yes         29     28
+```
+
+``` r
+
+tidytitanic::tidy_titanic |> 
+  pivotr(filter = age == "Child", rows = survived, cols = sex) 
+#> # A tibble: 2 × 3
+#>   survived  Male Female
+#>   <fct>    <dbl>  <dbl>
+#> 1 No          35     17
+#> 2 Yes         29     28
+```
+
+``` r
+
+
+tidytitanic::tidy_titanic |> 
+  pivotr(filter = n() < 100, rows = survived, cols = sex) 
+#> # A tibble: 2 × 3
+#>   survived  Male Female
+#>   <fct>    <dbl>  <dbl>
+#> 1 No           0      0
+#> 2 Yes          0      0
+```
+
+``` r
+
+tidytitanic::tidy_titanic |> 
+  pivotr(filter = n() < 600, .by = sex, rows = survived, cols = sex) 
+#> # A tibble: 2 × 3
+#>   survived  Male Female
+#>   <fct>    <dbl>  <dbl>
+#> 1 No           0    126
+#> 2 Yes          0    344
 ```
 
 ``` r
@@ -636,18 +718,18 @@ flat_titanic |> pivot_example(rows = sex, value = freq)
 #> # A tibble: 2 × 2
 #>   sex    value
 #>   <fct>  <dbl>
-#> 1 Male     387
-#> 2 Female     3
+#> 1 Male      75
+#> 2 Female     0
 ```
 
 ``` r
 
 flat_titanic |> pivot_samplen(rows = sex, value = freq)
 #> # A tibble: 2 × 2
-#>   sex    value    
-#>   <fct>  <chr>    
-#> 1 Male   5; 35; 57
-#> 2 Female 17; 0; 20
+#>   sex    value     
+#>   <fct>  <chr>     
+#> 1 Male   0; 118; 35
+#> 2 Female 0; 89; 3
 ```
 
 ``` r
@@ -750,6 +832,22 @@ flat_titanic |>
 #>   <fct>  <dbl> <dbl>
 #> 1 Male    78.8  21.2
 #> 2 Female  26.8  73.2
+```
+
+``` r
+
+# pivot_percent
+flat_titanic |> 
+  pivotr(rows = sex, cols = survived, 
+         value = freq, 
+         filter = dplyr::n() < 300
+         , .by = age
+         )
+#> # A tibble: 2 × 3
+#>   sex       No   Yes
+#>   <fct>  <dbl> <dbl>
+#> 1 Male    1364   367
+#> 2 Female   126   344
 ```
 
 # toward a piped workflow

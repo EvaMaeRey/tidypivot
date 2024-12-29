@@ -8,6 +8,9 @@
 #   
 # }
 
+
+
+
 data_define_value <- function(data, value = NULL, wt = NULL){
   
     value_quo <- rlang::enquo(value)
@@ -124,4 +127,6 @@ data_proportioned_to_pivoted <- function(data, pivot = T, cols = NULL){
 
     }
 
-  }
+}
+
+
