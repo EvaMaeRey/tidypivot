@@ -276,7 +276,13 @@ new_tidypivot <- function(data = data.frame(),
                           rows = NULL,
                           cols = NULL,
                           value = NULL,
-                          wt = NULL) {
+                          wt = NULL,
+                          fun = NULL,
+                          prop = FALSE,
+                          percent = FALSE,
+                          round = NULL,
+                          within = NULL,
+                          pivot = NULL) {
 
   # table specification components !
   tp <- list(
@@ -284,7 +290,13 @@ new_tidypivot <- function(data = data.frame(),
     rows = rows,
     cols = cols,
     value = value,
-    wt = wt
+    wt = wt,
+    fun = fun,
+    prop = prop,
+    percent = percent,
+    round = round,
+    within = within,
+    pivot = pivot
     # more 'slots' to be added
   )
 
@@ -299,17 +311,18 @@ new_tidypivot <- function(data = data.frame(),
 
 print.tidypivot <- function(tp){
   
-  print(gt::gt(do.call(pivotr, tp)))
+  print(do.call(pivotr, tp))
   
   invisible(tp)
   
 }
 
 #' @export
-ggtable <- function(data = data.frame()){
+ggtable <- function(data = NULL){
   
-  thedata <<- data # don't love this
-
+  # thedata <<- data # don't love this
+  data <- data %||% data.frame()
+  
   tp <- new_tidypivot()
   
   tp$data <- data
@@ -321,11 +334,28 @@ ggtable <- function(data = data.frame()){
 }
 
 
+#' @export
+last_table <- function(){
+  
+  last_tp
+  
+}
+
+```
+
+
+```{r}
+tidytitanic::tidy_titanic |> head()
+
+ggtable(tidytitanic::tidy_titanic) 
+
+
+last_table()
 ```
 
 
 
-```{r, results = "asis"}
+```{r}
 #' @export
 set_rows <- function(tp, rows = NULL){
   
@@ -338,8 +368,7 @@ set_rows <- function(tp, rows = NULL){
   
 }
 
-ggtable(tidytitanic::tidy_titanic) |>
-  set_rows(sex)
+
   
 
 #' @export
@@ -355,22 +384,21 @@ set_cols <- function(tp, cols = NULL){
   
 
 }
-
-ggtable(tidytitanic::tidy_titanic) |>
-  set_rows(sex) |>
-  set_cols(survived)
-  
-
 ```
 
 
+```{r}
+ggtable(tidytitanic::tidy_titanic) |>
+  set_rows(sex) |>
+  set_cols(survived)
+```
 
 
 ```{r piping}
 #' @export
 set_fun <- function(tp, fun = sum){
 
-  tp$fun <- deparse(substitute(fun))
+  tp$fun <- fun
 
   last_tp <<- tp
 
@@ -382,7 +410,7 @@ set_fun <- function(tp, fun = sum){
 #' @export
 set_value <- function(tp, value = NULL){
   
-  tp$value <- deparse(substitute(value))
+  tp$value <- enquo(value)
 
   last_tp <<- tp
   
@@ -394,7 +422,7 @@ set_value <- function(tp, value = NULL){
 #' @export
 set_wt <- function(tp, wt = NULL){
   
-  tp$wt <- deparse(substitute(wt))
+  tp$wt <- enquo(wt)
 
   last_tp <<- tp
   
@@ -406,7 +434,7 @@ set_wt <- function(tp, wt = NULL){
 #' @export
 set_weight <- function(tp, weight = NULL){
   
-  tp$weight <- deparse(substitute(weight))
+  tp$weight <- enquo(weight)
 
   print(tp)
   
@@ -426,18 +454,33 @@ unpivot <- function(tp){
   
   
 }
-
-
-
-#' @export
-last_table <- function(){
-  
-  last_tp
-  
-}
 ```
 
 
+```{r}
+tidytitanic::flat_titanic 
+
+ggtable(tidytitanic::flat_titanic) |>
+  set_value(freq) |>
+  set_rows(sex) |>
+  set_cols(survived)
+
+# a null table...
+ggtable(tidytitanic::flat_titanic) |>
+  set_value(NA) |>
+  set_rows(sex)
+
+ggtable(tidytitanic::flat_titanic) |>
+  set_wt(freq) |>
+  set_rows(sex) |>
+  set_cols(survived)
+
+last_table() |>
+  set_fun(mean)
+
+last_table() |> 
+  unpivot()
+```
 
 
 
@@ -451,7 +494,7 @@ knitrExtra::chunk_to_dir("piping")
 ```
 
 
-```{r , results = "asis"}
+```{r}
 library(tidyverse)
 library(tidypivot)
 ext_exports <- read_csv("https://raw.githubusercontent.com/EvaMaeRey/mytidytuesday/refs/heads/main/2024-11-19-gg-prefixes/exported_funs_exts_ggplot2_tidyverse_org.csv") %>% 

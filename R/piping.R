@@ -1,7 +1,7 @@
 #' @export
 set_fun <- function(tp, fun = sum){
 
-  tp$fun <- deparse(substitute(fun))
+  tp$fun <- fun
 
   last_tp <<- tp
 
@@ -13,7 +13,7 @@ set_fun <- function(tp, fun = sum){
 #' @export
 set_value <- function(tp, value = NULL){
   
-  tp$value <- deparse(substitute(value))
+  tp$value <- enquo(value)
 
   last_tp <<- tp
   
@@ -25,7 +25,7 @@ set_value <- function(tp, value = NULL){
 #' @export
 set_wt <- function(tp, wt = NULL){
   
-  tp$wt <- deparse(substitute(wt))
+  tp$wt <- enquo(wt)
 
   last_tp <<- tp
   
@@ -37,7 +37,7 @@ set_wt <- function(tp, wt = NULL){
 #' @export
 set_weight <- function(tp, weight = NULL){
   
-  tp$weight <- deparse(substitute(weight))
+  tp$weight <- enquo(weight)
 
   print(tp)
   
@@ -55,14 +55,5 @@ unpivot <- function(tp){
   
   last_tp <<- tp
   
-  
-}
-
-
-
-#' @export
-last_table <- function(){
-  
-  last_tp
   
 }
