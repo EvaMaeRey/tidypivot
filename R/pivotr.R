@@ -7,6 +7,7 @@ pivotr <- function(data,
                        
                    fun = NULL,
                        
+                   filter = TRUE,
                    prop = FALSE,
                    percent = FALSE,
                    round = NULL,
@@ -18,6 +19,7 @@ pivotr <- function(data,
 
   
   data |> 
+  data_filter({{filter}}) |>
   data_define_value(value = {{value}}, wt = {{wt}}) |> 
   data_to_grouped(rows = {{rows}}, cols = {{cols}}) |>
   data_grouped_to_summarized(fun = fun) |>

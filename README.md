@@ -85,15 +85,14 @@ But API:
   records)
 
 ``` r
-# data_slice <- function(data, filter = NULL){
-#   
-#   value_quo <- rlang::enquo(value)
-#   
-#   if()
-#   data %>% 
-#     filter(filter)
-#   
-# }
+data_filter <- function(data, filter = TRUE){
+
+  data <- data |>
+      dplyr::filter({{filter}})
+  
+  data
+
+}
 
 data_define_value <- function(data, value = NULL, wt = NULL){
   
@@ -131,7 +130,7 @@ data_to_grouped <- function(data, cols, rows){
     ### grouping by tabulation vars col and row
     data |>
       dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
-                      .drop = FALSE)
+                      .drop = TRUE)
   
   
 }
@@ -237,6 +236,7 @@ pivotr <- function(data,
                        
                    fun = NULL,
                        
+                   filter = TRUE,
                    prop = FALSE,
                    percent = FALSE,
                    round = NULL,
@@ -248,6 +248,7 @@ pivotr <- function(data,
 
   
   data |> 
+  data_filter({{filter}}) |>
   data_define_value(value = {{value}}, wt = {{wt}}) |> 
   data_to_grouped(rows = {{rows}}, cols = {{cols}}) |>
   data_grouped_to_summarized(fun = fun) |>
@@ -266,6 +267,14 @@ tidytitanic::flat_titanic |>
 #>   <fct>    <dbl>  <dbl>
 #> 1 No        91.5    8.5
 #> 2 Yes       51.6   48.4
+
+tidytitanic::flat_titanic |> 
+  pivotr(value = freq, rows = survived, cols = sex, filter = sex == "Female")
+#> # A tibble: 2 × 2
+#>   survived Female
+#>   <fct>     <dbl>
+#> 1 No          126
+#> 2 Yes         344
 ```
 
 ``` r
@@ -335,6 +344,7 @@ new_tidypivot <- function(data = data.frame(),
                           value = NULL,
                           wt = NULL,
                           fun = NULL,
+                          filter = TRUE,
                           prop = FALSE,
                           percent = FALSE,
                           round = NULL,
@@ -400,6 +410,13 @@ last_table <- function(){
 ```
 
 ``` r
+ggtable() 
+#> # A tibble: 1 × 1
+#>   value
+#>   <dbl>
+#> 1     0
+
+
 tidytitanic::tidy_titanic |> head()
 #>   id class  sex   age survived
 #> 1  1   3rd Male Child       No
@@ -437,14 +454,22 @@ set_rows <- function(tp, rows = NULL){
 }
 
 
-  
-
 #' @export
 set_cols <- function(tp, cols = NULL){
   
   tp$cols <- enquo(cols)
 
+  last_tp <<- tp
+  
   tp
+  
+
+}
+
+#' @export
+set_filter <- function(tp, filter = TRUE){
+  
+  if(!filter){tp$filter <- !!rlang::enquo(filter)}
   
   last_tp <<- tp
   
@@ -457,12 +482,16 @@ set_cols <- function(tp, cols = NULL){
 ``` r
 ggtable(tidytitanic::tidy_titanic) |>
   set_rows(sex) |>
-  set_cols(survived)
+  set_cols(survived) |>
+  set_filter(TRUE)
 #> # A tibble: 2 × 3
 #>   sex       No   Yes
 #>   <fct>  <dbl> <dbl>
 #> 1 Male    1364   367
 #> 2 Female   126   344
+
+# last_table |>
+#   set_filter(sex == "Female")
 ```
 
 ``` r
@@ -506,23 +535,60 @@ set_wt <- function(tp, wt = NULL){
 set_weight <- function(tp, weight = NULL){
   
   tp$weight <- enquo(weight)
-
-  print(tp)
   
   last_tp <<- tp
+  
+  tp
   
 }
 
 
 #' @export
-unpivot <- function(tp){
+set_prop <- function(tp, within = NULL){
   
-  tp$pivot <- FALSE
-
-  print(tp)
+  tp$percent <- FALSE
+  tp$prop <- TRUE
+  tp$within <- enquo(within)
   
   last_tp <<- tp
   
+  tp
+  
+}
+
+#' @export
+set_percent <- function(tp, within = NULL){
+  
+  tp$prop <- FALSE
+  tp$percent <- TRUE
+  tp$within <- enquo(within)
+  
+  last_tp <<- tp
+  
+  tp
+  
+}
+
+
+#' @export
+set_within <- function(tp, within = NULL){
+  
+  tp$within <- enquo(within)
+  
+  last_tp <<- tp
+  
+  tp
+  
+}
+
+#' @export
+no_pivot <- function(tp){
+  
+  tp$pivot <- FALSE
+
+  last_tp <<- tp
+
+  tp  
   
 }
 ```
@@ -573,6 +639,30 @@ ggtable(tidytitanic::flat_titanic) |>
 #> 1 Male    1364   367
 #> 2 Female   126   344
 
+last_table() |>
+  set_percent()
+#> # A tibble: 2 × 3
+#>   sex       No   Yes
+#>   <fct>  <dbl> <dbl>
+#> 1 Male    62    16.7
+#> 2 Female   5.7  15.6
+
+last_table() |>
+  set_prop()
+#> # A tibble: 2 × 3
+#>   sex       No   Yes
+#>   <fct>  <dbl> <dbl>
+#> 1 Male   0.62  0.167
+#> 2 Female 0.057 0.156
+
+last_table() |>
+  set_prop(within = sex)
+#> # A tibble: 2 × 3
+#>   sex       No   Yes
+#>   <fct>  <dbl> <dbl>
+#> 1 Male   0.788 0.212
+#> 2 Female 0.268 0.732
+
 # a null table...
 ggtable(tidytitanic::flat_titanic) |>
   set_value(NA) |>
@@ -602,7 +692,7 @@ last_table() |>
 #> 2 Female  15.8  43
 
 last_table() |> 
-  unpivot()
+  no_pivot()
 #> # A tibble: 4 × 3
 #>   survived sex    value
 #>   <fct>    <fct>  <dbl>
@@ -635,7 +725,7 @@ ggtable(ext_exports)
 #>   <dbl>
 #> 1  5527
 
-ggtable(ext_exports %>% filter(ind_classic_prefix))
+ggtable(ext_exports |> filter(ind_classic_prefix))
 #> # A tibble: 1 × 1
 #>   value
 #>   <dbl>
@@ -855,14 +945,14 @@ flat_titanic |> pivot_example(rows = sex, value = freq)
 #>   sex    value
 #>   <fct>  <dbl>
 #> 1 Male       0
-#> 2 Female    13
+#> 2 Female     0
 
 flat_titanic |> pivot_samplen(rows = sex, value = freq)
 #> # A tibble: 2 × 2
-#>   sex    value    
-#>   <fct>  <chr>    
-#> 1 Male   35; 5; 0 
-#> 2 Female 76; 4; 17
+#>   sex    value      
+#>   <fct>  <chr>      
+#> 1 Male   57; 118; 0 
+#> 2 Female 140; 76; 89
 
 flat_titanic |> pivot_list(rows = sex, cols = survived, value = freq)
 #> # A tibble: 2 × 3

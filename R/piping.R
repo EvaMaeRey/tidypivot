@@ -38,22 +38,59 @@ set_wt <- function(tp, wt = NULL){
 set_weight <- function(tp, weight = NULL){
   
   tp$weight <- enquo(weight)
-
-  print(tp)
   
   last_tp <<- tp
+  
+  tp
   
 }
 
 
 #' @export
-unpivot <- function(tp){
+set_prop <- function(tp, within = NULL){
   
-  tp$pivot <- FALSE
-
-  print(tp)
+  tp$percent <- FALSE
+  tp$prop <- TRUE
+  tp$within <- enquo(within)
   
   last_tp <<- tp
   
+  tp
+  
+}
+
+#' @export
+set_percent <- function(tp, within = NULL){
+  
+  tp$prop <- FALSE
+  tp$percent <- TRUE
+  tp$within <- enquo(within)
+  
+  last_tp <<- tp
+  
+  tp
+  
+}
+
+
+#' @export
+set_within <- function(tp, within = NULL){
+  
+  tp$within <- enquo(within)
+  
+  last_tp <<- tp
+  
+  tp
+  
+}
+
+#' @export
+no_pivot <- function(tp){
+  
+  tp$pivot <- FALSE
+
+  last_tp <<- tp
+
+  tp  
   
 }

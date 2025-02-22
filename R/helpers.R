@@ -1,12 +1,11 @@
-# data_slice <- function(data, filter = NULL){
-#   
-#   value_quo <- rlang::enquo(value)
-#   
-#   if()
-#   data %>% 
-#     filter(filter)
-#   
-# }
+data_filter <- function(data, filter = TRUE){
+
+  data <- data |>
+      dplyr::filter({{filter}})
+  
+  data
+
+}
 
 data_define_value <- function(data, value = NULL, wt = NULL){
   
@@ -44,7 +43,7 @@ data_to_grouped <- function(data, cols, rows){
     ### grouping by tabulation vars col and row
     data |>
       dplyr::group_by(dplyr::across(c({{cols}}, {{rows}})),
-                      .drop = FALSE)
+                      .drop = TRUE)
   
   
 }
