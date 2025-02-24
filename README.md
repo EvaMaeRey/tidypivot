@@ -145,7 +145,7 @@ data_grouped_to_summarized <- function(data, fun = NULL){
     ### summarizing ####
     
     data |>
-        dplyr::summarise(value = fun(.data$value))
+        dplyr::summarise(summary = fun(.data$value))
   
   
 }
@@ -169,7 +169,7 @@ data_summarized_to_proportioned <- function(data, prop = F, percent = F, within 
 
             data <- data |>
               dplyr::ungroup() |>
-              dplyr::mutate(value = round(.data$value*mult/sum(.data$value), round))
+              dplyr::mutate(prop = round(.data$summary*mult/sum(.data$summary), round))
 
         # prop is within categories specified by within variable
         }else{
@@ -178,34 +178,56 @@ data_summarized_to_proportioned <- function(data, prop = F, percent = F, within 
                 dplyr::ungroup() |>
                 dplyr::group_by(dplyr::across(c({{within}})),
                                 .drop = FALSE) |>
-                dplyr::mutate(value = round(.data$value*mult/sum(.data$value), round))
+                dplyr::mutate(prop = round(.data$summary*mult/sum(.data$summary), round))
 
         }
     }
+    
+  if(prop|percent){data$display <- data$prop}else{data$display <- data$summary}
   
   data
 
 }
 
 
-data_proportioned_to_pivoted <- function(data, pivot = T, cols = NULL){
+data_proportioned_to_pivoted <- function(data, pivot = TRUE, cols = NULL){
   
     cols_quo  <- rlang::enquo(cols)
-    if(is.null(pivot)){pivot <- TRUE}
 
     tidy <- data |>
       dplyr::ungroup()
 
     # do not pivot if argument pivot false or if no columns specified
-    if(pivot == F | rlang::quo_is_null(cols_quo)){
+    if(pivot == F){
 
-      tidy
+      tidy 
 
       # otherwise pivot by columns
-    }else{
+    }else
+    
+    
+    if(rlang::quo_is_null(cols_quo) & pivot){
+      
+      tidy <- tidy |> dplyr::select(-summary)
+      if(!is.null(data$prop)|!is.null(data$percent)){
+        tidy <- tidy |>  dplyr::select(-prop)
+      }
+        
+      tidy |>
+        dplyr::rename(value = display)
+      
+    } else
+      
+    
+    if(!rlang::quo_is_null(cols_quo) & pivot){
+      # keep only display column, and tabulation vars
+      tidy <- tidy |> dplyr::select(-summary)
+      if(!is.null(data$prop)|!is.null(data$percent)){
+        tidy <- tidy |>  dplyr::select(-prop)
+      }
 
       tidy |>
-        tidyr::pivot_wider(names_from = {{cols}})
+        tidyr::pivot_wider(names_from = {{cols}}, values_from = display)
 
     }
 
@@ -214,6 +236,7 @@ data_proportioned_to_pivoted <- function(data, pivot = T, cols = NULL){
 
 ``` r
 tidytitanic::flat_titanic |> 
+  dplyr::filter(freq > 30) |>
   data_define_value(value = freq) |> 
   data_to_grouped(rows = survived, cols = sex) |>
   data_grouped_to_summarized() |>
@@ -222,8 +245,8 @@ tidytitanic::flat_titanic |>
 #> # A tibble: 2 × 3
 #>   survived  Male Female
 #>   <fct>    <dbl>  <dbl>
-#> 1 No        91.5   8.46
-#> 2 Yes       51.6  48.4
+#> 1 No        93.9   6.13
+#> 2 Yes       52.3  47.7
 ```
 
 ``` r
@@ -243,7 +266,7 @@ pivotr <- function(data,
                        
                    within = NULL,
 
-                   pivot = NULL
+                   pivot = TRUE
 ){
 
   
@@ -303,13 +326,13 @@ tidy_titanic |> pivotr(rows = c(sex, age), cols = survived)
 #> 4 Female Adult   109   316
 
 tidy_titanic |> pivotr(rows = sex, cols = survived, pivot = F)
-#> # A tibble: 4 × 3
-#>   survived sex    value
-#>   <fct>    <fct>  <dbl>
-#> 1 No       Male    1364
-#> 2 No       Female   126
-#> 3 Yes      Male     367
-#> 4 Yes      Female   344
+#> # A tibble: 4 × 4
+#>   survived sex    summary display
+#>   <fct>    <fct>    <dbl>   <dbl>
+#> 1 No       Male      1364    1364
+#> 2 No       Female     126     126
+#> 3 Yes      Male       367     367
+#> 4 Yes      Female     344     344
 
 flat_titanic |> pivotr(rows = sex, value = freq, prop = TRUE)
 #> # A tibble: 2 × 2
@@ -349,7 +372,7 @@ new_tidypivot <- function(data = data.frame(),
                           percent = FALSE,
                           round = NULL,
                           within = NULL,
-                          pivot = NULL) {
+                          pivot = TRUE) {
 
   # table specification components !
   tp <- list(
@@ -693,13 +716,13 @@ last_table() |>
 
 last_table() |> 
   no_pivot()
-#> # A tibble: 4 × 3
-#>   survived sex    value
-#>   <fct>    <fct>  <dbl>
-#> 1 No       Male   170. 
-#> 2 No       Female  15.8
-#> 3 Yes      Male    45.9
-#> 4 Yes      Female  43
+#> # A tibble: 4 × 4
+#>   survived sex    summary display
+#>   <fct>    <fct>    <dbl>   <dbl>
+#> 1 No       Male     170.    170. 
+#> 2 No       Female    15.8    15.8
+#> 3 Yes      Male      45.9    45.9
+#> 4 Yes      Female    43      43
 ```
 
 ``` r
@@ -944,15 +967,15 @@ flat_titanic |> pivot_example(rows = sex, value = freq)
 #> # A tibble: 2 × 2
 #>   sex    value
 #>   <fct>  <dbl>
-#> 1 Male       0
+#> 1 Male     192
 #> 2 Female     0
 
 flat_titanic |> pivot_samplen(rows = sex, value = freq)
 #> # A tibble: 2 × 2
-#>   sex    value      
-#>   <fct>  <chr>      
-#> 1 Male   57; 118; 0 
-#> 2 Female 140; 76; 89
+#>   sex    value     
+#>   <fct>  <chr>     
+#> 1 Male   14; 5; 0  
+#> 2 Female 17; 20; 13
 
 flat_titanic |> pivot_list(rows = sex, cols = survived, value = freq)
 #> # A tibble: 2 × 3

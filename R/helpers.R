@@ -58,7 +58,7 @@ data_grouped_to_summarized <- function(data, fun = NULL){
     ### summarizing ####
     
     data |>
-        dplyr::summarise(value = fun(.data$value))
+        dplyr::summarise(summary = fun(.data$value))
   
   
 }
@@ -82,7 +82,7 @@ data_summarized_to_proportioned <- function(data, prop = F, percent = F, within 
 
             data <- data |>
               dplyr::ungroup() |>
-              dplyr::mutate(value = round(.data$value*mult/sum(.data$value), round))
+              dplyr::mutate(prop = round(.data$summary*mult/sum(.data$summary), round))
 
         # prop is within categories specified by within variable
         }else{
@@ -91,35 +91,57 @@ data_summarized_to_proportioned <- function(data, prop = F, percent = F, within 
                 dplyr::ungroup() |>
                 dplyr::group_by(dplyr::across(c({{within}})),
                                 .drop = FALSE) |>
-                dplyr::mutate(value = round(.data$value*mult/sum(.data$value), round))
+                dplyr::mutate(prop = round(.data$summary*mult/sum(.data$summary), round))
 
         }
     }
+    
+  if(prop|percent){data$display <- data$prop}else{data$display <- data$summary}
   
   data
 
 }
 
 
-data_proportioned_to_pivoted <- function(data, pivot = T, cols = NULL){
+data_proportioned_to_pivoted <- function(data, pivot = TRUE, cols = NULL){
   
     cols_quo  <- rlang::enquo(cols)
-    if(is.null(pivot)){pivot <- TRUE}
 
     tidy <- data |>
       dplyr::ungroup()
 
 
     # do not pivot if argument pivot false or if no columns specified
-    if(pivot == F | rlang::quo_is_null(cols_quo)){
+    if(pivot == F){
 
-      tidy
+      tidy 
 
       # otherwise pivot by columns
-    }else{
+    }else
+    
+    
+    if(rlang::quo_is_null(cols_quo) & pivot){
+      
+      tidy <- tidy |> dplyr::select(-summary)
+      if(!is.null(data$prop)|!is.null(data$percent)){
+        tidy <- tidy |>  dplyr::select(-prop)
+      }
+        
+      tidy |>
+        dplyr::rename(value = display)
+      
+    } else
+      
+    
+    if(!rlang::quo_is_null(cols_quo) & pivot){
+      # keep only display column, and tabulation vars
+      tidy <- tidy |> dplyr::select(-summary)
+      if(!is.null(data$prop)|!is.null(data$percent)){
+        tidy <- tidy |>  dplyr::select(-prop)
+      }
 
       tidy |>
-        tidyr::pivot_wider(names_from = {{cols}})
+        tidyr::pivot_wider(names_from = {{cols}}, values_from = display)
 
     }
 

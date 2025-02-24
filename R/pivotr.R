@@ -14,7 +14,7 @@ pivotr <- function(data,
                        
                    within = NULL,
 
-                   pivot = NULL
+                   pivot = TRUE
 ){
 
   
