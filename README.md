@@ -614,6 +614,12 @@ no_pivot <- function(tp){
   tp  
   
 }
+
+collect <- function(tp){
+  
+  do.call(pivotr, tp)
+  
+}
 ```
 
 ``` r
@@ -716,6 +722,17 @@ last_table() |>
 
 last_table() |> 
   no_pivot()
+#> # A tibble: 4 × 4
+#>   survived sex    summary display
+#>   <fct>    <fct>    <dbl>   <dbl>
+#> 1 No       Male     170.    170. 
+#> 2 No       Female    15.8    15.8
+#> 3 Yes      Male      45.9    45.9
+#> 4 Yes      Female    43      43
+
+
+last_table() |>
+  collect()
 #> # A tibble: 4 × 4
 #>   survived sex    summary display
 #>   <fct>    <fct>    <dbl>   <dbl>
@@ -967,15 +984,15 @@ flat_titanic |> pivot_example(rows = sex, value = freq)
 #> # A tibble: 2 × 2
 #>   sex    value
 #>   <fct>  <dbl>
-#> 1 Male     192
-#> 2 Female     0
+#> 1 Male       0
+#> 2 Female   140
 
 flat_titanic |> pivot_samplen(rows = sex, value = freq)
 #> # A tibble: 2 × 2
-#>   sex    value     
-#>   <fct>  <chr>     
-#> 1 Male   14; 5; 0  
-#> 2 Female 17; 20; 13
+#>   sex    value      
+#>   <fct>  <chr>      
+#> 1 Male   154; 11; 57
+#> 2 Female 14; 0; 1
 
 flat_titanic |> pivot_list(rows = sex, cols = survived, value = freq)
 #> # A tibble: 2 × 3

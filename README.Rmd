@@ -537,6 +537,12 @@ no_pivot <- function(tp){
   tp  
   
 }
+
+collect <- function(tp){
+  
+  do.call(pivotr, tp)
+  
+}
 ```
 
 
@@ -572,6 +578,10 @@ last_table() |>
 
 last_table() |> 
   no_pivot()
+
+
+last_table() |>
+  collect()
 ```
 
 

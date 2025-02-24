@@ -94,3 +94,9 @@ no_pivot <- function(tp){
   tp  
   
 }
+
+collect <- function(tp){
+  
+  do.call(pivotr, tp)
+  
+}
