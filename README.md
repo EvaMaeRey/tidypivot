@@ -1,14 +1,29 @@
 
+- [Toward declarative table
+  generation](#toward-declarative-table-generation)
 - [{tidypivot} allows you to create tables by describing them (like
-  ggplot2 plot
-  description/declaration)](#tidypivot-allows-you-to-create-tables-by-describing-them-like-ggplot2-plot-descriptiondeclaration)
+  ggplot2 plotting’s
+  description/declaration)](#tidypivot-allows-you-to-create-tables-by-describing-them-like-ggplot2-plottings-descriptiondeclaration)
 - [declarative table creation with
   ggplot2](#declarative-table-creation-with-ggplot2)
+  - [setup](#setup)
+  - [declarative table build](#declarative-table-build)
   - [Status quo table creation: Harder than it should
     be?](#status-quo-table-creation-harder-than-it-should-be)
-    - [pivotr function: toward declarative table
-      generation](#pivotr-function-toward-declarative-table-generation)
+  - [Under the hood, the mechanics follow the status
+    quo…](#under-the-hood-the-mechanics-follow-the-status-quo)
+- [So innternal helpers `data_filter`, `data_define_value`,
+  `data_to_grouped`
+  etc…](#so-innternal-helpers-data_filter-data_define_value-data_to_grouped-etc)
+- [Encapsulating steps in `pivotr()`](#encapsulating-steps-in-pivotr)
+  - [Examples](#examples)
 - [toward a piped workflow](#toward-a-piped-workflow)
+  - [tidypivot object](#tidypivot-object)
+  - [pipe-friendly user facing
+    functions](#pipe-friendly-user-facing-functions)
+    - [Examples](#examples-1)
+- [Packaging](#packaging)
+- [ggplot2 extension case study…](#ggplot2-extension-case-study)
 - [examples/derivative](#examplesderivative)
 - [filling cells with examples from
   data.](#filling-cells-with-examples-from-data)
@@ -16,7 +31,20 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# {tidypivot} allows you to create tables by describing them (like ggplot2 plot description/declaration)
+### Toward declarative table generation
+
+API describe layout of table (rows and cols) and compute (default to
+count records)
+
+``` r
+library(tidypivot)
+
+ggtable(tidytitanic::passengers) |>
+  set_cols(sex) |>
+  set_rows(survived)
+```
+
+# {tidypivot} allows you to create tables by describing them (like ggplot2 plotting’s description/declaration)
 
 note: see original discussion here:
 <https://evamaerey.github.io/mytidytuesday/2022-02-14-tables/tables.html>
@@ -39,60 +67,79 @@ and thoughtful contributions from @shannonpileggi and @brshallow
 
 # declarative table creation with ggplot2
 
+### setup
+
 ``` r
 library(ggplot2)
-StatSum$default_aes <- aes(label = after_stat(n))
+StatSumLabel <- ggproto(`_class` = "StatSumLabel",
+                        `_inherit` = StatSum,
+                        default_aes = aes(label = after_stat(n)))
 
-# I want to put this on the x-axis (cols)
-tidytitanic::tidy_titanic |>
-  ggplot(
-      # I want to put this on the x-axis (cols)
-  aes(x = sex, 
-      # I want to put this on the y- axis (rows)
-      y = survived)
-  )
+theme_grey(16) |>
+  set_theme()
 ```
 
-<img src="man/figures/README-unnamed-chunk-2-1.png" width="100%" />
+### declarative table build
 
 ``` r
+library(ggplot2)
+# 1. Declare table form
+tidytitanic::tidy_titanic |>
+  ggplot() + 
+  aes(x = sex, # cols
+      y = survived)   # rows
 
-# grouping and computation happen in one step, filling in 'table'
+# 2. Now fill in the table
 last_plot() + 
-  stat_sum(geom = "text")
+  geom_text(stat = StatSumLabel)  # geom_count could be used too
 ```
 
-<img src="man/figures/README-unnamed-chunk-2-2.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-4-1.png" width="49%" /><img src="man/figures/README-unnamed-chunk-4-2.png" width="49%" />
 
 ## Status quo table creation: Harder than it should be?
 
-- 1.  grouping
-- 2.  compute
-- 3.  pivot
+1.  grouping on vars anticipated to be rows and cols
+2.  compute
+3.  pivoting
 
-### pivotr function: toward declarative table generation
+``` r
+library(dplyr)
+library(tidyr)
 
-Under the hood:
+tidytitanic::tidy_titanic |> 
+  group_by(survived, 
+           sex) |> 
+  count() |> 
+  pivot_wider(
+    names_from = sex,
+    values_from = n
+              )
+#> # A tibble: 2 × 3
+#> # Groups:   survived [2]
+#>   survived  Male Female
+#>   <fct>    <int>  <int>
+#> 1 No        1364    126
+#> 2 Yes        367    344
+```
+
+## Under the hood, the mechanics follow the status quo…
 
 - group by rows and columns
 - value in data to consider (1 if not specified)
 - wt, weight the value (1 if not specified)
 - fun - do an operation (on value) within group
 
-But API:
+# So innternal helpers `data_filter`, `data_define_value`, `data_to_grouped` etc…
 
-- describe layout of table (rows and cols) and compute (default to count
-  records)
+<details>
 
 ``` r
-data_filter <- function(data, filter = TRUE){
-
-  data <- data |>
-      dplyr::filter({{filter}})
+data_filter <- function(data, filter){
   
-  data
-
+  dplyr::filter(data, {{filter}})
+  
 }
+
 
 data_define_value <- function(data, value = NULL, wt = NULL){
   
@@ -234,9 +281,11 @@ data_proportioned_to_pivoted <- function(data, pivot = TRUE, cols = NULL){
   }
 ```
 
+.
+
 ``` r
 tidytitanic::flat_titanic |> 
-  dplyr::filter(freq > 30) |>
+  data_filter(freq > 35) |>
   data_define_value(value = freq) |> 
   data_to_grouped(rows = survived, cols = sex) |>
   data_grouped_to_summarized() |>
@@ -245,11 +294,18 @@ tidytitanic::flat_titanic |>
 #> # A tibble: 2 × 3
 #>   survived  Male Female
 #>   <fct>    <dbl>  <dbl>
-#> 1 No        93.9   6.13
+#> 1 No        93.7   6.28
 #> 2 Yes       52.3  47.7
 ```
 
+</details>
+
+# Encapsulating steps in `pivotr()`
+
+<details>
+
 ``` r
+#' @export
 pivotr <- function(data,
                    rows = NULL,
                    cols = NULL,
@@ -269,7 +325,6 @@ pivotr <- function(data,
                    pivot = TRUE
 ){
 
-  
   data |> 
   data_filter({{filter}}) |>
   data_define_value(value = {{value}}, wt = {{wt}}) |> 
@@ -281,10 +336,16 @@ pivotr <- function(data,
 }
 ```
 
+</details>
+
+### Examples
+
 ``` r
 
 tidytitanic::flat_titanic |> 
-  pivotr(value = freq, rows = survived, cols = sex, percent = T, within = survived)
+  pivotr(value = freq, 
+         rows = survived, cols = sex, 
+         percent = T, within = survived)
 #> # A tibble: 2 × 3
 #>   survived  Male Female
 #>   <fct>    <dbl>  <dbl>
@@ -292,7 +353,8 @@ tidytitanic::flat_titanic |>
 #> 2 Yes       51.6   48.4
 
 tidytitanic::flat_titanic |> 
-  pivotr(value = freq, rows = survived, cols = sex, filter = sex == "Female")
+  pivotr(value = freq, rows = survived, 
+         cols = sex, filter = sex == "Female")
 #> # A tibble: 2 × 2
 #>   survived Female
 #>   <fct>     <dbl>
@@ -358,9 +420,14 @@ flat_titanic |> pivotr(rows = sex, cols = survived, value = freq, prop = TRUE, w
 
 # toward a piped workflow
 
+## tidypivot object
+
+<details>
+
 <https://evamaerey.github.io/mytidytuesday/2024-07-02-s3-tables/s3-tables-tidypivot.html>
 
 ``` r
+#' @export
 new_tidypivot <- function(data = data.frame(),
                           rows = NULL,
                           cols = NULL,
@@ -398,7 +465,7 @@ new_tidypivot <- function(data = data.frame(),
 
 }
 
-
+#' @export
 print.tidypivot <- function(tp){
   
   print(do.call(pivotr, tp))
@@ -406,7 +473,15 @@ print.tidypivot <- function(tp){
   invisible(tp)
   
 }
+```
 
+</details>
+
+## pipe-friendly user facing functions
+
+<details>
+
+``` r
 #' @export
 ggtable <- function(data = NULL){
   
@@ -441,13 +516,15 @@ ggtable()
 
 
 tidytitanic::tidy_titanic |> head()
-#>   id class  sex   age survived
-#> 1  1   3rd Male Child       No
-#> 2  2   3rd Male Child       No
-#> 3  3   3rd Male Child       No
-#> 4  4   3rd Male Child       No
-#> 5  5   3rd Male Child       No
-#> 6  6   3rd Male Child       No
+#> # A tibble: 6 × 5
+#>      id class sex   age   survived
+#>   <int> <fct> <fct> <fct> <fct>   
+#> 1     1 3rd   Male  Child No      
+#> 2     2 3rd   Male  Child No      
+#> 3     3 3rd   Male  Child No      
+#> 4     4 3rd   Male  Child No      
+#> 5     5 3rd   Male  Child No      
+#> 6     6 3rd   Male  Child No
 
 ggtable(tidytitanic::tidy_titanic) 
 #> # A tibble: 1 × 1
@@ -492,7 +569,7 @@ set_cols <- function(tp, cols = NULL){
 #' @export
 set_filter <- function(tp, filter = TRUE){
   
-  if(!filter){tp$filter <- !!rlang::enquo(filter)}
+  if(!filter){tp$filter <- enquo(filter)}
   
   last_tp <<- tp
   
@@ -531,6 +608,46 @@ set_fun <- function(tp, fun = sum){
 
 
 #' @export
+set_fun_example <- function(tp){
+
+  tp$fun <- function(x) sample(x, 1)
+
+
+  last_tp <<- tp
+
+  tp
+  
+}
+
+
+#' @export
+set_fun_sample <- function(tp, n = 2, sep = "; "){
+
+  tp$fun <- function(x) paste(sample(x, n, replace = F), collapse = sep)
+
+
+  last_tp <<- tp
+
+  tp
+  
+}
+
+
+#' @export
+set_fun_list <- function(tp, sep = "; "){
+
+  tp$fun <- function(x) paste(x, collapse = sep)
+
+
+  last_tp <<- tp
+
+  tp
+  
+}
+```
+
+``` r
+#' @export
 set_value <- function(tp, value = NULL){
   
   tp$value <- enquo(value)
@@ -540,6 +657,7 @@ set_value <- function(tp, value = NULL){
   tp
   
 }
+
 
 
 #' @export
@@ -564,10 +682,12 @@ set_weight <- function(tp, weight = NULL){
   tp
   
 }
+```
 
+``` r
 
 #' @export
-set_prop <- function(tp, within = NULL){
+calc_prop <- function(tp, within = NULL){
   
   tp$percent <- FALSE
   tp$prop <- TRUE
@@ -580,7 +700,7 @@ set_prop <- function(tp, within = NULL){
 }
 
 #' @export
-set_percent <- function(tp, within = NULL){
+calc_percent <- function(tp, within = NULL){
   
   tp$prop <- FALSE
   tp$percent <- TRUE
@@ -603,7 +723,9 @@ set_within <- function(tp, within = NULL){
   tp
   
 }
+```
 
+``` r
 #' @export
 no_pivot <- function(tp){
   
@@ -622,75 +744,68 @@ collect <- function(tp){
 }
 ```
 
+</details>
+
+### Examples
+
 ``` r
-tidytitanic::flat_titanic 
-#>    class    sex   age survived freq
-#> 1    1st   Male Child       No    0
-#> 2    2nd   Male Child       No    0
-#> 3    3rd   Male Child       No   35
-#> 4   Crew   Male Child       No    0
-#> 5    1st Female Child       No    0
-#> 6    2nd Female Child       No    0
-#> 7    3rd Female Child       No   17
-#> 8   Crew Female Child       No    0
-#> 9    1st   Male Adult       No  118
-#> 10   2nd   Male Adult       No  154
-#> 11   3rd   Male Adult       No  387
-#> 12  Crew   Male Adult       No  670
-#> 13   1st Female Adult       No    4
-#> 14   2nd Female Adult       No   13
-#> 15   3rd Female Adult       No   89
-#> 16  Crew Female Adult       No    3
-#> 17   1st   Male Child      Yes    5
-#> 18   2nd   Male Child      Yes   11
-#> 19   3rd   Male Child      Yes   13
-#> 20  Crew   Male Child      Yes    0
-#> 21   1st Female Child      Yes    1
-#> 22   2nd Female Child      Yes   13
-#> 23   3rd Female Child      Yes   14
-#> 24  Crew Female Child      Yes    0
-#> 25   1st   Male Adult      Yes   57
-#> 26   2nd   Male Adult      Yes   14
-#> 27   3rd   Male Adult      Yes   75
-#> 28  Crew   Male Adult      Yes  192
-#> 29   1st Female Adult      Yes  140
-#> 30   2nd Female Adult      Yes   80
-#> 31   3rd Female Adult      Yes   76
-#> 32  Crew Female Adult      Yes   20
+tidytitanic::passengers |> head()
+#>   passenger_id title last_name first_name survived pclass    sex age sib_sp
+#> 1            1   Mr.    Braund       Owen        0      3   male  22      1
+#> 2            2  Mrs.   Cumings   Florence        1      1 female  38      1
+#> 3            3 Miss. Heikkinen      Laina        1      3 female  26      0
+#> 4            4  Mrs.  Futrelle       Lily        1      1 female  35      1
+#> 5            5   Mr.     Allen    William        0      3   male  35      0
+#> 6            6   Mr.     Moran      James        0      3   male  NA      0
+#>   parch    fare cabin embarked           ticket            maiden_name
+#> 1     0  7.2500              S        A/5 21171                   <NA>
+#> 2     0 71.2833   C85        C         PC 17599 Florence Briggs Thayer
+#> 3     0  7.9250              S STON/O2. 3101282                   <NA>
+#> 4     0 53.1000  C123        S           113803          Lily May Peel
+#> 5     0  8.0500              S           373450                   <NA>
+#> 6     0  8.4583              Q           330877                   <NA>
+#>                                                  name prefered_name
+#> 1                             Braund, Mr. Owen Harris          <NA>
+#> 2 Cumings, Mrs. John Bradley (Florence Briggs Thayer)          <NA>
+#> 3                              Heikkinen, Miss. Laina          <NA>
+#> 4        Futrelle, Mrs. Jacques Heath (Lily May Peel)          <NA>
+#> 5                            Allen, Mr. William Henry          <NA>
+#> 6                                    Moran, Mr. James          <NA>
+```
 
-ggtable(tidytitanic::flat_titanic) |>
-  set_value(freq) |>
-  set_rows(sex) |>
-  set_cols(survived)
+``` r
+ggtable(tidytitanic::passengers) |>
+  set_cols(sex) |>
+  set_rows(survived)
 #> # A tibble: 2 × 3
-#>   sex       No   Yes
-#>   <fct>  <dbl> <dbl>
-#> 1 Male    1364   367
-#> 2 Female   126   344
+#>   survived female  male
+#>      <int>  <dbl> <dbl>
+#> 1        0     81   734
+#> 2        1    385   109
 
 last_table() |>
-  set_percent()
+  calc_percent()
 #> # A tibble: 2 × 3
-#>   sex       No   Yes
-#>   <fct>  <dbl> <dbl>
-#> 1 Male    62    16.7
-#> 2 Female   5.7  15.6
+#>   survived female  male
+#>      <int>  <dbl> <dbl>
+#> 1        0    6.2  56.1
+#> 2        1   29.4   8.3
 
 last_table() |>
-  set_prop()
+  calc_prop()
 #> # A tibble: 2 × 3
-#>   sex       No   Yes
-#>   <fct>  <dbl> <dbl>
-#> 1 Male   0.62  0.167
-#> 2 Female 0.057 0.156
+#>   survived female  male
+#>      <int>  <dbl> <dbl>
+#> 1        0  0.062 0.561
+#> 2        1  0.294 0.083
 
 last_table() |>
-  set_prop(within = sex)
+  calc_prop(within = sex)
 #> # A tibble: 2 × 3
-#>   sex       No   Yes
-#>   <fct>  <dbl> <dbl>
-#> 1 Male   0.788 0.212
-#> 2 Female 0.268 0.732
+#>   survived female  male
+#>      <int>  <dbl> <dbl>
+#> 1        0  0.174 0.871
+#> 2        1  0.826 0.129
 
 # a null table...
 ggtable(tidytitanic::flat_titanic) |>
@@ -705,7 +820,7 @@ ggtable(tidytitanic::flat_titanic) |>
 ggtable(tidytitanic::flat_titanic) |>
   set_wt(freq) |>
   set_rows(sex) |>
-  set_cols(survived)
+  set_cols(survived) 
 #> # A tibble: 2 × 3
 #>   sex       No   Yes
 #>   <fct>  <dbl> <dbl>
@@ -732,7 +847,7 @@ last_table() |>
 
 
 last_table() |>
-  collect()
+  collect()  # returns what would be printed as data frame
 #> # A tibble: 4 × 4
 #>   survived sex    summary display
 #>   <fct>    <fct>    <dbl>   <dbl>
@@ -740,22 +855,69 @@ last_table() |>
 #> 2 No       Female    15.8    15.8
 #> 3 Yes      Male      45.9    45.9
 #> 4 Yes      Female    43      43
+
+
+ggtable(tidytitanic::flat_titanic) |>
+  set_value(freq) |>
+  set_rows(sex) |>
+  set_fun_example()
+#> # A tibble: 2 × 2
+#>   sex    value
+#>   <fct>  <dbl>
+#> 1 Male     387
+#> 2 Female     4
+
+ggtable(tidytitanic::flat_titanic) |>
+  set_value(freq) |>
+  set_rows(sex) |>
+  set_fun_sample(n = 3)
+#> # A tibble: 2 × 2
+#>   sex    value     
+#>   <fct>  <chr>     
+#> 1 Male   57; 0; 387
+#> 2 Female 80; 140; 3
+
+ggtable(tidytitanic::flat_titanic) |>
+  set_value(freq) |>
+  set_rows(sex) |>
+  set_fun_list()
+#> # A tibble: 2 × 2
+#>   sex    value                                                         
+#>   <fct>  <chr>                                                         
+#> 1 Male   0; 0; 35; 0; 118; 154; 387; 670; 5; 11; 13; 0; 57; 14; 75; 192
+#> 2 Female 0; 0; 17; 0; 4; 13; 89; 3; 1; 13; 14; 0; 140; 80; 76; 20
 ```
 
+# Packaging
+
 ``` r
-# knitrExtra::chunk_names_get()
+knitrExtra::chunk_names_get()
 
 knitrExtra::chunk_to_dir("helpers")
 knitrExtra::chunk_to_dir("pivotr")
-knitrExtra::chunk_to_dir("piping")
+knitrExtra::chunk_to_dir("tidypivot-object")
+knitrExtra::chunk_to_dir("ggtable")
+knitrExtra::chunk_to_dir("set-rows")
+knitrExtra::chunk_to_dir("set-fun")
+knitrExtra::chunk_to_dir("set-value")
+knitrExtra::chunk_to_dir("set-prop")
+knitrExtra::chunk_to_dir("no-pivot")
 ```
 
 ``` r
+devtools::document()
+devtools::check()
+devtools::install(pkg = ".", upgrade = "never") 
+```
+
+# ggplot2 extension case study…
+
+``` r
 library(tidyverse)
-library(tidypivot)
-ext_exports <- read_csv("https://raw.githubusercontent.com/EvaMaeRey/mytidytuesday/refs/heads/main/2024-11-19-gg-prefixes/exported_funs_exts_ggplot2_tidyverse_org.csv") %>% 
-  mutate(prefix = str_extract(fun_exported, ".*?_")) %>% 
-  mutate(prefix_long = str_extract(fun_exported, ".+_")) %>% 
+
+ext_exports <- read_csv("https://raw.githubusercontent.com/EvaMaeRey/mytidytuesday/refs/heads/main/2024-11-19-gg-prefixes/exported_funs_exts_ggplot2_tidyverse_org.csv") |> 
+  mutate(prefix = str_extract(fun_exported, ".*?_")) |> 
+  mutate(prefix_long = str_extract(fun_exported, ".+_")) |> 
   mutate(ind_classic_prefix = prefix %in% c("stat_", "geom_", "theme_", "scale_", "coord_", "facet_"))
 
 
@@ -805,11 +967,28 @@ last_table() |>
 #> 10 erocoar           NA      1    12     NA     5     NA
 #> # ℹ 76 more rows
 
+last_table() |>
+  set_rows(c(user, repo))
+#> # A tibble: 101 × 8
+#>    user          repo         coord_ facet_ geom_ scale_ stat_ theme_
+#>    <chr>         <chr>         <dbl>  <dbl> <dbl>  <dbl> <dbl>  <dbl>
+#>  1 AllanCameron  geomtextpath      1     NA    24      6     1     NA
+#>  2 cidm-ph       ggmapinset        1     NA     4     NA     2     NA
+#>  3 davidchall    ggip              1     NA     1     NA     1      2
+#>  4 easystats     see               1     NA    14     78    NA      6
+#>  5 hrbrmstr      ggalt             1     NA    11     NA     6     NA
+#>  6 stefanedwards lemon             5      2     3      2    NA     NA
+#>  7 teunbrand     ggh4x             1      5     7      9     7     NA
+#>  8 teunbrand     legendry          1     NA    NA     NA    NA      1
+#>  9 davidgohel    ggiraph          NA      2    50     94    NA     NA
+#> 10 earowang      sugrrants        NA      1     1     NA     1     NA
+#> # ℹ 91 more rows
+
 # last_table() |>
 #   set_rows(c(user, repo))
 
 
-read_csv("https://raw.githubusercontent.com/EvaMaeRey/mytidytuesday/refs/heads/main/2024-12-10-ggplot2-layer-composition/ggplot2_exported_layer_fun_composition.csv") %>% 
+read_csv("https://raw.githubusercontent.com/EvaMaeRey/mytidytuesday/refs/heads/main/2024-12-10-ggplot2-layer-composition/ggplot2_exported_layer_fun_composition.csv") |> 
   rename(prefix = fun_prefix) ->
 ggplot2_layers_definers
 
@@ -842,11 +1021,6 @@ last_table() |>
 #> 4 stat_  geom          32    NA
 #> 5 stat_  position      32    NA
 #> 6 stat_  stat          NA    32
-```
-
-``` r
-devtools::check()
-devtools::install(pkg = ".", upgrade = "never") 
 ```
 
 # examples/derivative
@@ -984,15 +1158,15 @@ flat_titanic |> pivot_example(rows = sex, value = freq)
 #> # A tibble: 2 × 2
 #>   sex    value
 #>   <fct>  <dbl>
-#> 1 Male       0
-#> 2 Female   140
+#> 1 Male     154
+#> 2 Female     0
 
 flat_titanic |> pivot_samplen(rows = sex, value = freq)
 #> # A tibble: 2 × 2
-#>   sex    value      
-#>   <fct>  <chr>      
-#> 1 Male   154; 11; 57
-#> 2 Female 14; 0; 1
+#>   sex    value     
+#>   <fct>  <chr>     
+#> 1 Male   0; 75; 154
+#> 2 Female 3; 20; 13
 
 flat_titanic |> pivot_list(rows = sex, cols = survived, value = freq)
 #> # A tibble: 2 × 3

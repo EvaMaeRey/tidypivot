@@ -1,3 +1,4 @@
+#' @export
 pivotr <- function(data,
                    rows = NULL,
                    cols = NULL,
@@ -17,7 +18,6 @@ pivotr <- function(data,
                    pivot = TRUE
 ){
 
-  
   data |> 
   data_filter({{filter}}) |>
   data_define_value(value = {{value}}, wt = {{wt}}) |> 

@@ -1,11 +1,9 @@
-data_filter <- function(data, filter = TRUE){
-
-  data <- data |>
-      dplyr::filter({{filter}})
+data_filter <- function(data, filter){
   
-  data
-
+  dplyr::filter(data, {{filter}})
+  
 }
+
 
 data_define_value <- function(data, value = NULL, wt = NULL){
   
