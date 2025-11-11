@@ -94,7 +94,7 @@ tidytitanic::tidy_titanic |>
 - fun - do an operation (on value) within group 
 
 
-# So innternal helpers `data_filter`, `data_define_value`, `data_to_grouped` etc...
+# So internal helpers `data_filter`, `data_define_value`, `data_to_grouped` etc...
 
 <details>
 
@@ -368,35 +368,35 @@ new_tidypivot <- function(data = data.frame(),
                           pivot = TRUE) {
 
   # table specification components !
-  tp <- list(
-    data = data,
-    rows = rows,
-    cols = cols,
-    value = value,
-    wt = wt,
-    fun = fun,
-    prop = prop,
-    percent = percent,
-    round = round,
-    within = within,
-    pivot = pivot
-    # more 'slots' to be added
+  tp_obj <- list(
+    # data = data,
+    # rows = rows,
+    # cols = cols,
+    # value = value,
+    # wt = wt,
+    # fun = fun,
+    # prop = prop,
+    # percent = percent,
+    # round = round,
+    # within = within,
+    # pivot = pivot
+    # # more 'slots' to be added
   )
 
   # declare class 'tidypivot'
-  class(tp) <- "tidypivot"
+  class(tp_obj) <- "tidypivot"
 
   # Return the created object
-  invisible(tp)
+  invisible(tp_obj)
 
 }
 
 #' @export
-print.tidypivot <- function(tp){
+print.tidypivot <- function(tp_obj){
   
-  print(do.call(pivotr, tp))
+  print(do.call(pivotr, tp_obj) |> gt::gt())
   
-  invisible(tp)
+  invisible(tp_obj)
   
 }
 ```
@@ -416,13 +416,13 @@ ggtable <- function(data = NULL){
   # thedata <<- data # don't love this
   data <- data %||% data.frame()
   
-  tp <- new_tidypivot()
+  tp_obj <- new_tidypivot()
   
-  tp$data <- data
+  tp_obj$data <- data
   
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
   
-  tp
+  tp_obj
 
 }
 
@@ -430,14 +430,16 @@ ggtable <- function(data = NULL){
 #' @export
 last_table <- function(){
   
-  last_tp
+  last_tp_obj
   
 }
 
 ```
 
 
-
+```{r}
+knitr::opts_chunk$set(results = "asis")
+```
 
 ```{r}
 ggtable() 
@@ -455,38 +457,38 @@ last_table()
 
 ```{r set-rows}
 #' @export
-set_rows <- function(tp, rows = NULL){
+set_rows <- function(tp_obj, rows = NULL){
   
-  tp$rows <- enquo(rows)
+  tp_obj$rows <- enquo(rows)
   
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
   
-  tp
+  tp_obj
 
   
 }
 
 
 #' @export
-set_cols <- function(tp, cols = NULL){
+set_cols <- function(tp_obj, cols = NULL){
   
-  tp$cols <- enquo(cols)
+  tp_obj$cols <- enquo(cols)
 
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
   
-  tp
+  tp_obj
   
 
 }
 
 #' @export
-set_filter <- function(tp, filter = TRUE){
+set_filter <- function(tp_obj, filter = TRUE){
   
-  if(!filter){tp$filter <- enquo(filter)}
+  if(!filter){tp_obj$filter <- enquo(filter)}
   
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
   
-  tp
+  tp_obj
   
 
 }
@@ -506,52 +508,52 @@ ggtable(tidytitanic::tidy_titanic) |>
 
 ```{r set-fun}
 #' @export
-set_fun <- function(tp, fun = sum){
+set_fun <- function(tp_obj, fun = sum){
 
-  tp$fun <- fun
+  tp_obj$fun <- fun
 
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
 
-  tp
+  tp_obj
   
 }
 
 
 #' @export
-set_fun_example <- function(tp){
+set_fun_example <- function(tp_obj){
 
-  tp$fun <- function(x) sample(x, 1)
+  tp_obj$fun <- function(x) sample(x, 1)
 
 
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
 
-  tp
+  tp_obj
   
 }
 
 
 #' @export
-set_fun_sample <- function(tp, n = 2, sep = "; "){
+set_fun_sample <- function(tp_obj, n = 2, sep = "; "){
 
-  tp$fun <- function(x) paste(sample(x, n, replace = F), collapse = sep)
+  tp_obj$fun <- function(x) paste(sample(x, n, replace = F), collapse = sep)
 
 
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
 
-  tp
+  tp_obj
   
 }
 
 
 #' @export
-set_fun_list <- function(tp, sep = "; "){
+set_fun_list <- function(tp_obj, sep = "; "){
 
-  tp$fun <- function(x) paste(x, collapse = sep)
+  tp_obj$fun <- function(x) paste(x, collapse = sep)
 
 
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
 
-  tp
+  tp_obj
   
 }
 
@@ -562,38 +564,38 @@ set_fun_list <- function(tp, sep = "; "){
 
 ```{r set-value}
 #' @export
-set_value <- function(tp, value = NULL){
+set_value <- function(tp_obj, value = NULL){
   
-  tp$value <- enquo(value)
+  tp_obj$value <- enquo(value)
 
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
   
-  tp
+  tp_obj
   
 }
 
 
 
 #' @export
-set_wt <- function(tp, wt = NULL){
+set_wt <- function(tp_obj, wt = NULL){
   
-  tp$wt <- enquo(wt)
+  tp_obj$wt <- enquo(wt)
 
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
   
-  tp
+  tp_obj
   
 }
 
 
 #' @export
-set_weight <- function(tp, weight = NULL){
+set_weight <- function(tp_obj, weight = NULL){
   
-  tp$weight <- enquo(weight)
+  tp_obj$weight <- enquo(weight)
   
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
   
-  tp
+  tp_obj
   
 }
 ```
@@ -602,40 +604,40 @@ set_weight <- function(tp, weight = NULL){
 ```{r set-prop}
 
 #' @export
-calc_prop <- function(tp, within = NULL){
+calc_prop <- function(tp_obj, within = NULL){
   
-  tp$percent <- FALSE
-  tp$prop <- TRUE
-  tp$within <- enquo(within)
+  tp_obj$percent <- FALSE
+  tp_obj$prop <- TRUE
+  tp_obj$within <- enquo(within)
   
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
   
-  tp
+  tp_obj
   
 }
 
 #' @export
-calc_percent <- function(tp, within = NULL){
+calc_percent <- function(tp_obj, within = NULL){
   
-  tp$prop <- FALSE
-  tp$percent <- TRUE
-  tp$within <- enquo(within)
+  tp_obj$prop <- FALSE
+  tp_obj$percent <- TRUE
+  tp_obj$within <- enquo(within)
   
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
   
-  tp
+  tp_obj
   
 }
 
 
 #' @export
-set_within <- function(tp, within = NULL){
+set_within <- function(tp_obj, within = NULL){
   
-  tp$within <- enquo(within)
+  tp_obj$within <- enquo(within)
   
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
   
-  tp
+  tp_obj
   
 }
 ```
@@ -643,19 +645,19 @@ set_within <- function(tp, within = NULL){
 
 ```{r no-pivot}
 #' @export
-no_pivot <- function(tp){
+no_pivot <- function(tp_obj){
   
-  tp$pivot <- FALSE
+  tp_obj$pivot <- FALSE
 
-  last_tp <<- tp
+  last_tp_obj <<- tp_obj
 
-  tp  
+  tp_obj  
   
 }
 
-collect <- function(tp){
+collect <- function(tp_obj){
   
-  do.call(pivotr, tp)
+  do.call(pivotr, tp_obj)
   
 }
 ```
@@ -794,6 +796,10 @@ last_table() |>
 
 
 # examples/derivative
+
+```{r}
+knitr::opts_chunk$set(results = "markup")
+```
 
 Here are some examples where you might have derivative functions
 
