@@ -394,7 +394,7 @@ new_tidypivot <- function(data = data.frame(),
 #' @export
 print.tidypivot <- function(tp_obj){
   
-  print(do.call(pivotr, tp_obj) |> gt::gt())
+  print(do.call(pivotr, tp_obj))
   
   invisible(tp_obj)
   
@@ -438,7 +438,7 @@ last_table <- function(){
 
 
 ```{r}
-knitr::opts_chunk$set(results = "asis")
+# knitr::opts_chunk$set(results = "asis")
 ```
 
 ```{r}
