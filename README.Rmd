@@ -677,8 +677,9 @@ tidytitanic::passengers |> head()
 ggtable(tidytitanic::passengers) |>
   set_cols(sex) |>
   set_rows(survived) |> 
-  collect() |> 
-  gt::gt()
+  collect() |>
+  gt::gt() |> 
+  gt::as_raw_html()
 
 last_table() |>
   calc_percent() 
