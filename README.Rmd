@@ -2,6 +2,7 @@
 output: 
   github_document:
     toc: TRUE
+  format: gfm
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -675,10 +676,12 @@ tidytitanic::passengers |> head()
 ```{r}
 ggtable(tidytitanic::passengers) |>
   set_cols(sex) |>
-  set_rows(survived)
+  set_rows(survived) |> 
+  collect() |> 
+  gt::gt()
 
 last_table() |>
-  calc_percent()
+  calc_percent() 
 
 last_table() |>
   calc_prop()
